@@ -41,6 +41,10 @@
     #define SPI_SPDR          SPDR
 
   #endif
+  
+  // macros
+  #define CS_ENABLE()         SPI_PORT &= (1 << SPI_SS)
+  #define CS_DISABLE()        SPI_PORT |= (1 << SPI_SS)
 
   /**
    * @desc    SPI Port Init
