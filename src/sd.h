@@ -1,6 +1,6 @@
 /**
  * --------------------------------------------------------------------------------------+
- * @brief       SD CARD INTERFACING
+ * @brief       SD / uSD CARD 
  * --------------------------------------------------------------------------------------+
  *              Copyright (C) 2023 Marian Hrinko.
  *              Written by Marian Hrinko (mato.hrinko@gmail.com)
@@ -11,7 +11,7 @@
  * @version     1.0
  * @test        AVR Atmega328p
  *
- * @depend      spi.h
+ * @depend      avr/io.h, spi.h
  * --------------------------------------------------------------------------------------+
  * @interface   SPI
  * @pins        
@@ -32,12 +32,10 @@
   #define SD_DDR              SPI_DDR
   #define SD_PORT             SPI_PORT
 
-  #define SD_SCK              SPI_SCK
-  #define SD_MOSI             SPI_MOSI
-  #define SD_MISO             SPI_MISO
-  #define SD_XCS              SPI_SS
-  #define SD_DREQ             1
-  #define SD_XDCS             0
+  #define SD_CLK              SPI_SCK   // CLK
+  #define SD_CMD              SPI_MOSI  // CMD
+  #define SD_DAT0             SPI_MISO  // DAT0
+  #define SD_DAT3             SPI_SS    // CS/DAT3
 
   // SD CARD COMMAND TABLE
   // ------------------------------------------------------------------
@@ -60,6 +58,10 @@
   #define SD_CMD58            (0x40+58) // READ_OCR
   #define SD_CMD59            (0x40+59) // CRC_ON_OFF
   
+  #define SD_CMD0_CRC         0x95
+  #define SD_CMD0_ARG         0x00000000
+  #define SD_CMD8_CRC         0x87
+  
   /**
    * @brief   SD Card Init
    *
@@ -70,6 +72,33 @@
   void SD_Init (void);
   
   /**
+   * @brief   SD Card Power Up Sequence
+   *
+   * @param   void
+   *
+   * @return  void
+   */
+  void SD_PowerUp (void);
+  
+  /**
+   * @brief   SD Card Power Up Sequence
+   *
+   * @param   void
+   *
+   * @return  uint8_t
+   */
+  uint8_t SD_IdleState (void);
+  
+  /**
+   * @brief   SD Card Response R1
+   *
+   * @param   void
+   *
+   * @return  uint8_t
+   */
+  void SD_GetResponseR1 (void);
+  
+  /**
    * @brief   SD Card Send Command
    *
    * @param   uint8_t
@@ -78,6 +107,6 @@
    *
    * @return  void
    */
-  void SD_SendCommand (uint8_t command, uint32_t argument, uint8_t crc);
+  void SD_SendCommand (uint8_t, uint32_t, uint8_t);
 
 #endif
