@@ -33,7 +33,7 @@
     #define SPI_SCK           5     // or SCLK
     #define SPI_MISO          4     // or DO
     #define SPI_MOSI          3     // or SDA, SDI, DI
-    #define SPI_SS            2     // or CS
+    #define SPI_SS            1     // or CS
 
     // SPI registers
     #define SPI_SPSR          SPSR

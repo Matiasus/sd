@@ -49,8 +49,9 @@ void SPI_SlowSpeedInit (void)
 {
   SPI_SPCR = (1 << SPE)  |                  // SPI Enable, note: writing a byte to the SPI data reg starts the SPI clock generator
              (1 << MSTR) |                  // Master device
-             (1 << SPR1);                   // Prescaler fclk/64 = 500 000 Hz
-  SPI_SPSR = (1 << SPI2X);                  // f*2             
+             (1 << SPR1) |
+             (1 << SPR0);                   // Prescaler fclk/128 = 62 500 Hz
+  //SPI_SPSR = (1 << SPI2X);                  // f*2             
 }
 
 /**

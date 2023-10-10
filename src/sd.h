@@ -25,7 +25,10 @@
   // INCLUDE libraries
   // ------------------------------------------------------------------
   #include <avr/io.h>
+  #include <util/delay.h>
   #include "spi.h"
+  #include "lcd/ssd1306.h"
+  #include <stdio.h>
 
   // PORT / PIN
   // ------------------------------------------------------------------
@@ -67,9 +70,9 @@
    *
    * @param   void
    *
-   * @return  void
+   * @return  uint8_t
    */
-  void SD_Init (void);
+  uint8_t SD_Init (void);
   
   /**
    * @brief   SD Card Power Up Sequence
@@ -96,7 +99,7 @@
    *
    * @return  uint8_t
    */
-  void SD_GetResponseR1 (void);
+  uint8_t SD_GetResponseR1 (void);
   
   /**
    * @brief   SD Card Send Command
