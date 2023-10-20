@@ -31,31 +31,27 @@
  */
 int main (void)
 {
-  uint8_t r1;
-  //char str[1];
+  SPI_PortInit ();
+  SPI_SlowSpeedInit ();
 
   // init LCD SSD1306
   // -------------------------------------------------------------------------------------
-/*
   SSD1306_Init ();                                                // init lcd
   SSD1306_ClearScreen ();
   SSD1306_SetPosition (10, 0);
   SSD1306_DrawString ("SDCARD INTERFACING", NORMAL);
-*/
+
   // init SD Card
   // -------------------------------------------------------------------------------------
-  /*
   SSD1306_SetPosition (1, 2);
   SSD1306_DrawString ("SD Card init", NORMAL);
-  */
-  r1 = SD_Init ();
-  /*
-  sprintf (str, "%x", r1);
-  SSD1306_SetPosition (103, 2);
-  SSD1306_DrawString ("[", NORMAL);
-  SSD1306_DrawString (str, NORMAL);
-  SSD1306_DrawString ("]", NORMAL);
-*/
+  SSD1306_SetPosition (103, 2); 
+  if (SD_Init () == SD_SUCCESS) {
+    SSD1306_DrawString ("[ok]", NORMAL);
+  } else {
+    SSD1306_DrawString ("[ko]", NORMAL);
+  }
+
   // EXIT
   // -------------------------------------------------------------------------------------
   return 0;

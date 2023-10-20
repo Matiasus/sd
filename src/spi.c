@@ -31,11 +31,9 @@
  */
 void SPI_PortInit (void)
 {
-  SPI_DDR |= (1 << SPI_SS)  |               // outputs
-             (1 << SPI_SCK) |               //
-             (1 << SPI_MOSI);               //
-  SPI_DDR &= ~(1 << SPI_MISO);              // inputs
-  SPI_PORT |= (1 << SPI_MISO);              // pullup activate
+  SPI_DDR |= (1 << SPI_SS) | (1 << SPI_MOSI) | (1 << SPI_SCK);
+  SPI_DDR &= ~(1 << SPI_MISO);
+  SPI_PORT |= (1 << SPI_MISO);
 }
 
 /**
@@ -47,81 +45,21 @@ void SPI_PortInit (void)
  */
 void SPI_SlowSpeedInit (void)
 {
-  SPI_SPCR = (1 << SPE)  |                  // SPI Enable, note: writing a byte to the SPI data reg starts the SPI clock generator
-             (1 << MSTR) |                  // Master device
-             (1 << SPR1) |
-             (1 << SPR0);                   // Prescaler fclk/128 = 62 500 Hz
-  //SPI_SPSR = (1 << SPI2X);                  // f*2             
+  SPI_SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR1) | (1 << SPR0);
+  SPI_SPSR &= ~(1 << SPI2X);
 }
 
 /**
- * @desc    SPI Fast Speed Init
- *
- * @param   void
- *
- * @return  void
- */
-void SPI_FastSpeedInit (void)
-{
-  SPI_SPCR = (1 << SPE)  |                  // SPI Enable, note: writing a byte to the SPI data reg starts the SPI clock generator
-             (1 << MSTR) |                  // Master device
-             (1 << SPR0) ;                  // f = fclk/16 = 0.5MHz
-  SPI_SPSR = (1 << SPI2X);                  // f*2
-}
-
-/**
- * @desc    SPI Write Byte
- *
- * @param   uint8_t
- *
- * @return  void
- */
-void SPI_WriteByte (uint8_t data)
-{
-  SPI_SPDR = data;                          // start transmission
-  while(!(SPI_SPSR & (1<<SPIF)))            // wait for transmission complete
-  ;
-}
-
-/**
- * @desc    SPI Write Word / big endian (MSB Byte first)
- *
- * @param   uint16_t
- *
- * @return  void
- */
-void SPI_WriteWord (uint16_t data)
-{
-  SPI_WriteByte ((uint8_t)(data >> 8));     // high byte
-  SPI_WriteByte ((uint8_t)(data & 0xFF));   // low byte
-}
-
-/**
- * @desc    SPI Read Byte
- *
- * @param   void
- *
- * @return  uint8_t
- */
-uint8_t SPI_ReadByte (void)
-{
-  SPI_SPDR = 0xFF;                          // start transmission, dummy byte
-  while(!(SPI_SPSR & (1<<SPIF)))            // wait for transmission complete
-  ;
-  return SPI_SPDR;                          // return received byte
-}
-
-/**
- * @desc    SPI Write / Read Byte
+ * @desc    SPI Send & Receive Byte
  *
  * @param   uint8_t
  *
  * @return  uint8_t
  */
-uint8_t SPI_WriteReadByte (uint8_t data)
+uint8_t SPI_Transfer (uint8_t data)
 {
-  SPI_SPDR = data;                          // start transmission
-  while(!(SPI_SPSR & (1<<SPIF)))            // wait for transmission complete
+  SPI_SPDR = data;
+  while(!(SPI_SPSR & (1<<SPIF))) 
   ;
-  return SPI_SPDR;                          // return received byte
+  return SPI_SPDR;
 }

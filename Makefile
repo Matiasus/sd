@@ -22,7 +22,7 @@ LIBDIR        = src
 DEVICE        = atmega328p
 #
 # Frequency
-FCPU          = 8000000
+FCPU          = 16000000
 #
 # Optimization
 OPTIMIZE      = Os
