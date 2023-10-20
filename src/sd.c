@@ -32,21 +32,27 @@
  */
 uint8_t SD_Init (void)
 {
-  uint8_t r1 = 0;
+  uint8_t r1;
+  uint8_t i = 0;
+  uint8_t r[5];
 
-  SSD1306_Init ();                                                // init lcd
-  SSD1306_ClearScreen ();
-  SSD1306_SetPosition (10, 0);
-  SSD1306_DrawString ("SDCARD INTERFACING", NORMAL);
-     
-  SPI_PortInit ();                                      // SPI ports init
-  SPI_SlowSpeedInit ();                                 // SPI slow speed 250kHz
-  SD_PowerUp ();                                        // Power up sequence
-  //uint8_t r1 = SD_IdleState ();                         // Idle state
+  SD_PowerUp ();
 
-  return r1;
+  while ((r1 = SD_IdleState ()) != SD_IDLE_STATE) {
+    if (++i > SD_CMD0_MAX_CYCLE) {
+      return SD_ERROR;
+    }
+  }
+  
+  _delay_ms(1);
+
+  if (SD_SendIfCond (r) == SD_ERROR) {
+    return SD_ERROR;
+  }
+
+
+  return SD_SUCCESS;
 }
-
 
 /**
  * @brief   SD Card Power Up Sequence
@@ -57,33 +63,28 @@ uint8_t SD_Init (void)
  */
 void SD_PowerUp (void)
 {
-  uint8_t i = 10;
-
   // Power Up Time Delay
   // ----------------------------------------------------------------
-  //_delay_ms(250);                                       // power up time
+  _delay_ms(250);                                       // power up time
 
   // Supply Ram Up Sequence
   // ----------------------------------------------------------------
-  CS_DISABLE();                                         // hold CS high
-  _delay_ms(1);                                         // supply ramp up time
-  
-  SSD1306_SetPosition (0, 2);
-  
-  while (i) {                                           // supply ramp up cycles
-    SPI_WriteByte (0xff);                               // min 74 cycles
-    SSD1306_DrawChar ('A', NORMAL);
-    i--;
+  CS_DISABLE ();                                        // hold CS high
+  _delay_ms (1);                                        // supply ramp up time
+
+  for (uint8_t i=0; i<10; i++) {
+    SPI_Transfer (0xff);
   }
+
   // Deselect Card
   // accor. http://www.rjhcoding.com/avrc-sd-interface-1.php
   // ----------------------------------------------------------------
-  CS_DISABLE();
-  SPI_WriteByte (0xff);
+  CS_DISABLE ();                                        // hold CS high
+  SPI_Transfer (0xff);                                  // dummy byte
 }
 
 /**
- * @brief   SD Card Power Up Sequence
+ * @brief   SD Card Idle State
  *
  * @param   void
  *
@@ -91,18 +92,82 @@ void SD_PowerUp (void)
  */
 uint8_t SD_IdleState (void)
 {
-  SPI_WriteByte (0xff);
+  SPI_Transfer (0xff);
   CS_ENABLE ();                                         // CS low
-  SPI_WriteByte (0xff);
+  SPI_Transfer (0xff);
 
   SD_SendCommand (SD_CMD0, SD_CMD0_ARG, SD_CMD0_CRC);   // Send CMD0
   uint8_t response = SD_GetResponseR1 ();               // response
 
-  SPI_WriteByte (0xff);
+  SPI_Transfer (0xff);
   CS_DISABLE ();                                        // CS High
-  SPI_WriteByte (0xff);
+  SPI_Transfer (0xff);
 
   return response;
+}
+
+/**
+ * @brief   SD Card Send if condition
+ *
+ * @param   uint8_t
+ *
+ * @return  uint8_t
+ */
+uint8_t SD_SendIfCond (uint8_t * r)
+{
+  SPI_Transfer (0xff);
+  CS_ENABLE ();                                         // CS low
+  SPI_Transfer (0xff);
+
+  SD_SendCommand (SD_CMD8, SD_CMD8_ARG, SD_CMD8_CRC);   // Send CMD0
+  uint8_t response = SD_GetResponseR7 (r);              // response
+
+  SPI_Transfer (0xff);
+  CS_DISABLE ();                                        // CS High
+  SPI_Transfer (0xff);
+  
+  return response;
+}
+
+/**
+ * @brief   SD Card Response R1
+ *
+ * @param   void
+ *
+ * @return  uint8_t
+ */
+uint8_t SD_GetResponseR1 (void)
+{
+  uint8_t i = 0;
+  uint8_t response;
+
+  while ((response = SPI_Transfer (0xff)) == 0xff) {
+    if (++i > 8) {
+      break;
+    }
+  }
+
+  return response;
+}
+
+/**
+ * @brief   SD Card Response R7
+ *
+ * @param   uint8_t *
+ *
+ * @return  uint8_t
+ */
+uint8_t SD_GetResponseR7 (uint8_t * r)
+{
+  if ((r[0] = SD_GetResponseR1 ()) > 1) {
+    return SD_ERROR;
+  }
+
+  for (uint8_t i=1; i<5; i++) {
+    r[i] = SD_GetResponseR1 ();
+  }
+
+  return SD_SUCCESS;
 }
 
 /**
@@ -116,31 +181,10 @@ uint8_t SD_IdleState (void)
  */
 void SD_SendCommand (uint8_t cmd, uint32_t arg, uint8_t crc)
 {
-  SPI_WriteByte (cmd);                                  // send command
-  SPI_WriteByte ((uint8_t) (arg >> 24));                // send arguments
-  SPI_WriteByte ((uint8_t) (arg >> 16));                //
-  SPI_WriteByte ((uint8_t) (arg >>  8));                //
-  SPI_WriteByte ((uint8_t) (arg >>  0));                //
-  SPI_WriteByte (crc | 0x01);                           // cyclic redundancy check
-}
-
-/**
- * @brief   SD Card Response R1
- *
- * @param   void
- *
- * @return  uint8_t
- */
-uint8_t SD_GetResponseR1 (void)
-{
-  uint8_t i = 0;
-  uint8_t response = 0xff;
-
-  while ((response = SPI_ReadByte ()) == 0xff) {
-    if (++i > 8) {
-      break;
-    }
-  }
-
-  return response;
+  SPI_Transfer (cmd | 0x40);                           // send command
+  SPI_Transfer ((uint8_t) (arg >> 24));                // send arguments
+  SPI_Transfer ((uint8_t) (arg >> 16));                //
+  SPI_Transfer ((uint8_t) (arg >>  8));                //
+  SPI_Transfer ((uint8_t) (arg >>  0));                //
+  SPI_Transfer (crc | 0x01);                           // cyclic redundancy check
 }
