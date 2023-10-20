@@ -22,7 +22,7 @@ LIBDIR        = src
 DEVICE        = atmega328p
 #
 # Frequency
-FCPU          = 8000000
+FCPU          = 16000000
 #
 # Optimization
 OPTIMIZE      = Os
@@ -126,5 +126,4 @@ clean:
 cleanall:
 	@echo "-----------------------------------------------------------------------"
 	rm -f $(OBJECTS) $(TARGET).hex $(TARGET).elf $(TARGET).map
-
 
