@@ -47,7 +47,7 @@
   #define CS_DISABLE()        SPI_PORT |= (1 << SPI_SS)
 
   // SPI init definitions
-  #define SPI_MASTER          0x01
+  #define SPI_MASTER          0x10
   #define SPI_SLAVE           0x00
   #define SPI_MODE_0          0x00
   #define SPI_MODE_1          0x04
