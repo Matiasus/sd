@@ -30,21 +30,19 @@
  *
  * @return  uint8_t
  */
-uint8_t SD_Init (void)
+uint8_t SD_Init (SD * sd)
 {
   uint8_t r[5];
   uint8_t attempt;
 
-  SD sd_init = { .cmd8_voltage_accept = 0, .cmd58_sdhc = 0 };
-
   // SPI Init (cs, settings)
-  // ----------------------------------------------------------------  
+  // ----------------------------------------------------------------
   SPI_Init (SPI_SS, SPI_MASTER | SPI_MODE_0 | SPI_MSB_FIRST | SPI_FOSC_DIV_128);
 
   // Power Up 
   // ----------------------------------------------------------------
   SD_PowerUp ();
-
+ 
   // Idle State - CMD0 
   // ----------------------------------------------------------------
   attempt = 0;
@@ -56,39 +54,41 @@ uint8_t SD_Init (void)
   // Send If Condition - CMD8
   // ----------------------------------------------------------------
   SD_SendIfCondition (r);
+  
   if (r[0] != SD_R1_IDLE_STATE ||                       // check idle state
       r[4] != (uint8_t) SD_CMD8_ARG) {                  // check sent pattern
     return SD_ERROR;
   }
   if (r[3] == SD_CMD8_VOLT_27_36_V) {
-    sd.cmd8_voltage_accept = 1;                         // accepted voltage range 2,7-3,6V
+    sd->cmd8_voltage_accept = 1;                        // accepted voltage range 2,7-3,6V
   }
   // ACMD41
   // ----------------------------------------------------------------
   attempt = 0;
   do {
     r[0] = SD_SendAppCommand ();
-    if ((r[0] != SD_R1_CARD_READY) || 
-        (r[0] != SD_R1_IDLE_STATE)) {
-      SD_SendOpCondition (r);
+    if ((r[0] == SD_R1_CARD_READY) || 
+        (r[0] == SD_R1_IDLE_STATE)) {
+      r[0] = SD_SendOpCondition ();
     }
     if (++attempt > SD_ATTEMPTS_CMD55) {
       return SD_ERROR;
     }
     _delay_ms (1);
   } while (r[0] != SD_R1_CARD_READY);
-
   // Read OCR - CMD58
   // ----------------------------------------------------------------
   SD_ReadOCR (r);
   if ((r[0] != SD_R1_CARD_READY)) {                  // card ready
     return SD_ERROR;
   }
-  if (r[1] == SD_CMD58_BUSY &&
-      r[1] == SD_CMD58_CCS) {
-    sd.cmd58_sdhc = 1;
+  if ((r[1] & SD_CMD58_READY) && 
+      (r[1] & SD_CMD58_CCS)) {
+    sd->cmd58_sdhc = 1;
   }
 
+  sd->success = 1;
+  
   return SD_SUCCESS;
 }
 
@@ -104,7 +104,7 @@ void SD_PowerUp (void)
 {
   // Power Up Time Delay
   // ----------------------------------------------------------------
-  //_delay_ms(250);                                       // power up time
+  _delay_ms(250);                                       // power up time
 
   // Supply Ram Up Sequence
   // ----------------------------------------------------------------
@@ -112,7 +112,7 @@ void SD_PowerUp (void)
   _delay_ms(1);                                         // supply ramp up time
 
   for (uint8_t i=0; i<10; i++) {                        // supply ramp up cycles
-    SPI_Transfer (0xff);                               // min 74 cycles
+    SPI_Transfer (0xff);                                // min 74 cycles
   }
   // Deselect Card
   // accor. http://www.rjhcoding.com/avrc-sd-interface-1.php
@@ -138,7 +138,7 @@ uint8_t SD_IdleState (void)
   uint8_t response = SD_GetResponseR1 ();               // get response R1
 
   SPI_Transfer (0xff);
-  CS_DISABLE ();                                        // CS High
+  CS_DISABLE ();                                        // CS high
   SPI_Transfer (0xff);
 
   return response;
@@ -158,10 +158,10 @@ void SD_SendIfCondition (uint8_t * r)
   SPI_Transfer (0xff);
 
   SD_SendCommand (SD_CMD8, SD_CMD8_ARG, SD_CMD8_CRC);   // Send CMD8
-  r = SD_GetResponseR7 ();                              // get response R7
+  SD_GetResponseR7 (r);                                 // get response R7
 
   SPI_Transfer (0xff);
-  CS_DISABLE ();                                        // CS High
+  CS_DISABLE ();                                        // CS high
   SPI_Transfer (0xff);
 }
 
@@ -178,11 +178,14 @@ uint8_t SD_SendAppCommand (void)
   CS_ENABLE ();                                         // CS low
   SPI_Transfer (0xff);
 
-  SD_SendCommand (SD_CMD55, 0x000000, 0x00);            // Send CMD55
-  uint8_t response = SD_GetResponseR1 ();               // get response R1
+  // SD Send Application Command
+  // === R1 response ===
+  // ----------------------------------------------------------------
+  SD_SendCommand (SD_CMD55, SD_CMD55_ARG, SD_CMD55_CRC);
+  uint8_t response = SD_GetResponseR1 ();
 
   SPI_Transfer (0xff);
-  CS_DISABLE ();                                        // CS High
+  CS_DISABLE ();                                        // CS high
   SPI_Transfer (0xff);
 
   return response;
@@ -191,11 +194,11 @@ uint8_t SD_SendAppCommand (void)
 /**
  * @brief   SD Send Op Condition
  *
- * @param   uint8_t *
+ * @param   void
  *
  * @return  uint8_t
  */
-uint8_t SD_SendOpCondition (uint8_t * r)
+uint8_t SD_SendOpCondition (void)
 {
   SPI_Transfer (0xff);
   CS_ENABLE ();                                         // CS low
@@ -203,32 +206,38 @@ uint8_t SD_SendOpCondition (uint8_t * r)
 
   // Argument of ACMD41 bit 23-0 means "inquiry CMD41", does not start
   // init process but is used for getting OCR
-  // cmd = 0x400000 -> HCS=1 SDHC or SDXC Supported
-  // cmd = 0x000000 -> HCS=0 SDSC Only Host
+  // cmd = 0x40000000 -> HCS=1 SDHC or SDXC Supported
+  // cmd = 0x00000000 -> HCS=0 SDSC Only Host
+  // === R1 response ===
   // ----------------------------------------------------------------
-  SD_SendCommand (SD_ACMD41, 0x400000, 0x00);           // Send ACMD41
-  SD_GetResponseR3 (r);                                 // get response R3
+  SD_SendCommand (SD_ACMD41, SD_ACMD41_ARG, SD_ACMD41_CRC);
+  uint8_t response = SD_GetResponseR1 ();
 
   SPI_Transfer (0xff);
-  CS_DISABLE ();                                        // CS High
+  CS_DISABLE ();                                        // CS high
   SPI_Transfer (0xff);
+  
+  return response;
 }
 
 /**
- * @brief   SD Send Application Command
+ * @brief   SD Read OCR
  *
  * @param   uint8_t *
  *
- * @return  uint8_t
+ * @return  void
  */
-uint8_t SD_ReadOCR (uint8_t * r)
+void SD_ReadOCR (uint8_t * r)
 {
   SPI_Transfer (0xff);
   CS_ENABLE ();                                         // CS low
   SPI_Transfer (0xff);
 
-  SD_SendCommand (SD_CMD58, 0x000000, 0x00);            // Send CMD55
-  SD_GetResponseR3 (r);                                 // get response R3
+  // Read OCR
+  // === R3 response ===
+  // ----------------------------------------------------------------
+  SD_SendCommand (SD_CMD58, SD_CMD58_ARG, SD_CMD58_CRC);
+  SD_GetResponseR3 (r);
 
   SPI_Transfer (0xff);
   CS_DISABLE ();                                        // CS High
@@ -261,9 +270,9 @@ uint8_t SD_GetResponseR1 (void)
  *
  * @param   uint8_t * r
  *
- * @return  void
+ * @return  uint8_t
  */
-uint8_t SD_GetResponseR3 (uint8_t * r)
+void SD_GetResponseR3 (uint8_t * r)
 {
   SD_GetResponseR7 (r);
 }
@@ -271,28 +280,15 @@ uint8_t SD_GetResponseR3 (uint8_t * r)
 /**
  * @brief   SD Card Response R7
  *
- * @param   uint8_t * r
+ * @param   uint8_t *
  *
- * @return  void
+ * @return  uint8_t
  */
-uint8_t SD_GetResponseR7 (uint8_t * r)
+void SD_GetResponseR7 (uint8_t * r)
 {
-  uint8_t i = 0;
-  uint8_t response = 0xff;
-
-  // get R1
-  // ----------------------------------------------------------------
-  if ((r[0] = SD_GetResponseR1 ()) == SD_R1_IDLE_STATE)
-    return SD_ERROR;
+  for (uint8_t i=0; i<5; i++) {
+    r[i] = SD_GetResponseR1 ();
   }
-
-  // Get rest of 4 byte answer
-  // ----------------------------------------------------------------
-  for (i=1; i<5; i++) {
-    r[i] = SPI_Transfer (0xff);
-  }
-
-  return SD_SUCCESS;
 }
 
 /**
@@ -306,7 +302,7 @@ uint8_t SD_GetResponseR7 (uint8_t * r)
  */
 void SD_SendCommand (uint8_t cmd, uint32_t arg, uint8_t crc)
 {
-  SPI_Transfer (cmd);                                  // send command
+  SPI_Transfer (0x40 | cmd);                           // send command
   SPI_Transfer ((uint8_t) (arg >> 24));                // send arguments
   SPI_Transfer ((uint8_t) (arg >> 16));                //
   SPI_Transfer ((uint8_t) (arg >>  8));                //
