@@ -35,7 +35,7 @@ uint8_t SD_Init (void)
   uint8_t r[5];
   uint8_t attempt;
 
-  SD sd_init = { .cmd8_voltage_accept = 0 };
+  SD sd_init = { .cmd8_voltage_accept = 0, .cmd58_sdhc = 0 };
 
   // SPI Init (cs, settings)
   // ----------------------------------------------------------------  
@@ -61,26 +61,33 @@ uint8_t SD_Init (void)
     return SD_ERROR;
   }
   if (r[3] == SD_CMD8_VOLT_27_36_V) {
-    sd.cmd8_voltage_accept = 1;                         // accepted voltage range
+    sd.cmd8_voltage_accept = 1;                         // accepted voltage range 2,7-3,6V
   }
-
   // ACMD41
   // ----------------------------------------------------------------
   attempt = 0;
   do {
-
     r[0] = SD_SendAppCommand ();
-    if ((r[0] != SD_R1_CARD_READY) || (r[0] != SD_R1_IDLE_STATE)) {
+    if ((r[0] != SD_R1_CARD_READY) || 
+        (r[0] != SD_R1_IDLE_STATE)) {
       SD_SendOpCondition (r);
     }
     if (++attempt > SD_ATTEMPTS_CMD55) {
       return SD_ERROR;
     }
+    _delay_ms (1);
   } while (r[0] != SD_R1_CARD_READY);
 
   // Read OCR - CMD58
   // ----------------------------------------------------------------
-  //SD_ReadOCR (r[0] != SD_CARD_READY);
+  SD_ReadOCR (r);
+  if ((r[0] != SD_R1_CARD_READY)) {                  // card ready
+    return SD_ERROR;
+  }
+  if (r[1] == SD_CMD58_BUSY &&
+      r[1] == SD_CMD58_CCS) {
+    sd.cmd58_sdhc = 1;
+  }
 
   return SD_SUCCESS;
 }
@@ -161,27 +168,6 @@ void SD_SendIfCondition (uint8_t * r)
 /**
  * @brief   SD Send Application Command
  *
- * @param   uint8_t *
- *
- * @return  uint8_t
- */
-uint8_t SD_ReadOCR (uint8_t * r)
-{
-  SPI_Transfer (0xff);
-  CS_ENABLE ();                                         // CS low
-  SPI_Transfer (0xff);
-
-  SD_SendCommand (SD_CMD58, 0x000000, 0x00);            // Send CMD55
-  SD_GetResponseR3 (r);                                 // get response R3
-
-  SPI_Transfer (0xff);
-  CS_DISABLE ();                                        // CS High
-  SPI_Transfer (0xff);
-}
-
-/**
- * @brief   SD Send Application Command
- *
  * @param   void
  *
  * @return  uint8_t
@@ -215,7 +201,33 @@ uint8_t SD_SendOpCondition (uint8_t * r)
   CS_ENABLE ();                                         // CS low
   SPI_Transfer (0xff);
 
-  SD_SendCommand (SD_ACMD41, 0x000000, 0x00);           // Send ACMD41
+  // Argument of ACMD41 bit 23-0 means "inquiry CMD41", does not start
+  // init process but is used for getting OCR
+  // cmd = 0x400000 -> HCS=1 SDHC or SDXC Supported
+  // cmd = 0x000000 -> HCS=0 SDSC Only Host
+  // ----------------------------------------------------------------
+  SD_SendCommand (SD_ACMD41, 0x400000, 0x00);           // Send ACMD41
+  SD_GetResponseR3 (r);                                 // get response R3
+
+  SPI_Transfer (0xff);
+  CS_DISABLE ();                                        // CS High
+  SPI_Transfer (0xff);
+}
+
+/**
+ * @brief   SD Send Application Command
+ *
+ * @param   uint8_t *
+ *
+ * @return  uint8_t
+ */
+uint8_t SD_ReadOCR (uint8_t * r)
+{
+  SPI_Transfer (0xff);
+  CS_ENABLE ();                                         // CS low
+  SPI_Transfer (0xff);
+
+  SD_SendCommand (SD_CMD58, 0x000000, 0x00);            // Send CMD55
   SD_GetResponseR3 (r);                                 // get response R3
 
   SPI_Transfer (0xff);
