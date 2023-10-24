@@ -1,15 +1,15 @@
 /**
  * ---------------------------------------------------------------+
- * @desc        SPI (Master Mode)
+ * @brief       SPI (Master Mode)
  * ---------------------------------------------------------------+
  *              Copyright (C) 2022 Marian Hrinko.
  *              Written by Marian Hrinko (mato.hrinko@gmail.com)
  *
  * @author      Marian Hrinko
- * @datum       21.09.2023
+ * @date        21.09.2023
  * @file        spi.c
  * @version     1.0
- * @tested      AVR Atmega328p
+ * @test        AVR Atmega328p
  *
  * @depend
  * ---------------------------------------------------------------+
@@ -23,29 +23,24 @@
 #include "spi.h"
 
 /**
- * @desc    SPI Port Init
+ * @desc    SPI Init
  *
- * @param   void
+ * @param   uint8_t
+ * @param   uint8_t
  *
  * @return  void
  */
-void SPI_PortInit (void)
+void SPI_Init (uint8_t cs, uint8_t settings)
 {
-  SPI_DDR |= (1 << SPI_SS) | (1 << SPI_MOSI) | (1 << SPI_SCK);
+  // SPI PORT Init
+  // ----------------------------------------------------------------
+  SPI_DDR |= (1 << cs) | (1 << SPI_MOSI) | (1 << SPI_SCK);
   SPI_DDR &= ~(1 << SPI_MISO);
   SPI_PORT |= (1 << SPI_MISO);
-}
 
-/**
- * @desc    SPI Slow Speed Init
- *
- * @param   void
- *
- * @return  void
- */
-void SPI_SlowSpeedInit (void)
-{
-  SPI_SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR1) | (1 << SPR0);
+  // SPI init
+  // ----------------------------------------------------------------
+  SPI_SPCR = settings | (1 << SPE);
   SPI_SPSR &= ~(1 << SPI2X);
 }
 

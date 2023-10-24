@@ -1,15 +1,15 @@
 /**
  * ---------------------------------------------------------------+
- * @desc        SPI (Master Mode)
+ * @brief       SPI (Master Mode)
  * ---------------------------------------------------------------+
  *              Copyright (C) 2022 Marian Hrinko.
  *              Written by Marian Hrinko (mato.hrinko@gmail.com)
  *
  * @author      Marian Hrinko
- * @datum       21.09.2022
+ * @date        21.09.2022
  * @file        spi.h
  * @version     1.0
- * @tested      AVR Atmega328p
+ * @test        AVR Atmega328p
  *
  * @depend      avr/io.h
  * ---------------------------------------------------------------+
@@ -46,23 +46,29 @@
   #define CS_ENABLE()         SPI_PORT &= ~(1 << SPI_SS)
   #define CS_DISABLE()        SPI_PORT |= (1 << SPI_SS)
 
-  /**
-   * @desc    SPI Port Init
-   *
-   * @param   void
-   *
-   * @return  void
-   */
-  void SPI_PortInit (void);
+  // SPI init definitions
+  #define SPI_MASTER          0x10
+  #define SPI_SLAVE           0x00
+  #define SPI_MODE_0          0x00
+  #define SPI_MODE_1          0x04
+  #define SPI_MODE_2          0x08
+  #define SPI_MODE_3          0x0C
+  #define SPI_MSB_FIRST       0x00
+  #define SPI_LSB_FIRST       0x20
+  #define SPI_FOSC_DIV_4      0x00
+  #define SPI_FOSC_DIV_16     0x01
+  #define SPI_FOSC_DIV_64     0x02
+  #define SPI_FOSC_DIV_128    0x03
 
   /**
-   * @desc    SPI Slow Speed Init
+   * @desc    SPI Init
    *
-   * @param   void
+   * @param   uint8_t
+   * @param   uint8_t
    *
    * @return  void
    */
-  void SPI_SlowSpeedInit (void);
+  void SPI_Init (uint8_t, uint8_t);
 
   /**
    * @desc    SPI Write Byte

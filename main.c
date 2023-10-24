@@ -31,8 +31,10 @@
  */
 int main (void)
 {
-  SPI_PortInit ();
-  SPI_SlowSpeedInit ();
+  char str[10];
+  //
+  // -------------------------------------------------------------------------------------  
+  SD sd = { .success = 0, .cmd8_voltage_accept = 0, .cmd58_sdhc = 0 };
 
   // init LCD SSD1306
   // -------------------------------------------------------------------------------------
@@ -46,12 +48,15 @@ int main (void)
   SSD1306_SetPosition (1, 2);
   SSD1306_DrawString ("SD Card init", NORMAL);
   SSD1306_SetPosition (103, 2); 
-  if (SD_Init () == SD_SUCCESS) {
+  if (SD_Init (&sd) == SD_SUCCESS) {
     SSD1306_DrawString ("[ok]", NORMAL);
   } else {
     SSD1306_DrawString ("[ko]", NORMAL);
   }
-
+  SSD1306_SetPosition (1, 4);   
+  sprintf (str, "SD: %x %x %x", sd.success, sd.cmd8_voltage_accept, sd.cmd58_sdhc);
+  SSD1306_DrawString (str, NORMAL);
+  
   // EXIT
   // -------------------------------------------------------------------------------------
   return 0;
