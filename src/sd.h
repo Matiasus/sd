@@ -54,10 +54,19 @@
   #define SD_CMD8                 (0x40+8)    // SEND_IF_COND / voltage information and asks the accessed card whether card can operate in supplied voltage range
   #define SD_CMD8_ARG             0x000001AA  // check pattern AA / Phzsical Layer Spec Version 3.01 page 62
   #define SD_CMD8_CRC             0x87
+ 
+  #define SD_CMD55                (0x40+55)   // APP_CMD
+  #define SD_CMD55_ARG            0x00000000  // 
+  #define SD_CMD55_CRC            0x00        // CRC
+  
+  #define SD_ACMD41               (0x40+41)   // SD_SEND_OP_COND (SDC) / Activates the card’s initialization process
+  #define SD_ACMD41_ARG           0x40000000  // 0x40000000 -> HCS=1 SDHC or SDXC Supported, 0x00000000 -> HCS=0 SDSC Only Host
+  #define SD_ACMD41_CRC           0x00        // CRC
 
   #define SD_CMD58                (0x40+58)   // READ_OCR
-  #define SD_CMD55                (0x40+55)   // APP_CMD
-  #define SD_ACMD41               (0x40+41)   // SD_SEND_OP_COND (SDC) / Activates the card’s initialization process
+  #define SD_CMD58_ARG            0x00000000  // 
+  #define SD_CMD58_CRC            0x00        // CRC
+  
   #define SD_CMD1                 (0x40+1)    // SD_SEND_OP_COND (MMC) / Activate the card's initialization process
   #define SD_CMD9                 (0x40+9)    // SEND_CSD / asks the selected card to send its card-specific data (CSD)
   #define SD_CMD10                (0x40+10)   // SEND_CID / asks the selected card to send its card identification (CID)
@@ -87,10 +96,11 @@
   #define SD_R1_PARAMETER_ERR     0x40
 
   #define SD_CMD8_VOLT_27_36_V    0x01
-  #define SD_CMD58_BUSY           0x80
+  #define SD_CMD58_READY          0x80
   #define SD_CMD58_CCS            0x40
-
-  typedef struct {
+  
+  typedef struct SD {
+    uint8_t success;
     uint8_t cmd8_voltage_accept;
     uint8_t cmd58_sdhc;
   } SD;
@@ -102,7 +112,7 @@
    *
    * @return  uint8_t
    */
-  uint8_t SD_Init (void);
+  uint8_t SD_Init (SD *);
 
   /**
    * @brief   SD Card Power Up Sequence
@@ -127,9 +137,9 @@
    *
    * @param   uint8_t *
    *
-   * @return  uint8_t
+   * @return  void
    */
-  uint8_t SD_SendIfCondition (uint8_t *);
+  void SD_SendIfCondition (uint8_t *);
 
   /**
    * @brief   SD Send Application Command
@@ -143,20 +153,20 @@
   /**
    * @brief   SD Send Op Condition
    *
-   * @param   uint8_t *
+   * @param   void
    *
    * @return  uint8_t
    */
-  uint8_t SD_SendOpCondition (uint8_t *);
+  uint8_t SD_SendOpCondition (void);
 
   /**
    * @brief   SD Send Application Command
    *
    * @param   uint8_t *
    *
-   * @return  uint8_t
+   * @return  void
    */
-  uint8_t SD_ReadOCR (uint8_t * );
+  void SD_ReadOCR (uint8_t * );
 
   /**
    * @brief   SD Card Response R1
@@ -174,16 +184,16 @@
    *
    * @return  void
    */
-  uint8_t SD_GetResponseR3 (uint8_t *);
+  void SD_GetResponseR3 (uint8_t *);
 
   /**
    * @brief   SD Card Response R7
    *
    * @param   uint8_t *
    *
-   * @return  uint8_t
+   * @return  void
    */
-  uint8_t SD_GetResponseR7 (uint8_t *);
+  void SD_GetResponseR7 (uint8_t *);
 
   /**
    * @brief   SD Card Send Command
