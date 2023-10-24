@@ -57,8 +57,8 @@
 
   #define SD_CMD58                (0x40+58)   // READ_OCR
   #define SD_CMD55                (0x40+55)   // APP_CMD
-  #define SD_ACMD41               (0x40+41)   // SD_SEND_OP_COND (SDC)
-  #define SD_CMD1                 (0x40+1)    // SD_SEND_OP_COND (MMC) / activate the card's initialization process
+  #define SD_ACMD41               (0x40+41)   // SD_SEND_OP_COND (SDC) / Activates the card’s initialization process
+  #define SD_CMD1                 (0x40+1)    // SD_SEND_OP_COND (MMC) / Activate the card's initialization process
   #define SD_CMD9                 (0x40+9)    // SEND_CSD / asks the selected card to send its card-specific data (CSD)
   #define SD_CMD10                (0x40+10)   // SEND_CID / asks the selected card to send its card identification (CID)
   #define SD_CMD12                (0x40+12)   // STOP_TRANSMISSION / force the card to stop transmission in Mutliple Block Read Operation
@@ -87,9 +87,12 @@
   #define SD_R1_PARAMETER_ERR     0x40
 
   #define SD_CMD8_VOLT_27_36_V    0x01
+  #define SD_CMD58_BUSY           0x80
+  #define SD_CMD58_CCS            0x40
 
   typedef struct {
     uint8_t cmd8_voltage_accept;
+    uint8_t cmd58_sdhc;
   } SD;
 
   /**
