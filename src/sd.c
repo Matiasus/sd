@@ -41,7 +41,7 @@ uint8_t SD_Init (SD * sd)
 
   // Power Up 
   // ----------------------------------------------------------------
-  SD_PowerUp ();
+  SD_Power_Up ();
  
   // Idle State - CMD0 
   // ----------------------------------------------------------------
@@ -107,7 +107,7 @@ uint8_t SD_Init (SD * sd)
     if (r[0] == SD_R1_CARD_READY) {
       sd->version = 3;                                  // SD Ver.1 Byte Address
     } else {
-      while ((r[0] = SD_Send_CMDx (SD_CMD1, SD_CMD1_ARG, SD_CMD0_CRC, r, SD_R1)) != SD_R1_CARD_READY) {
+      while (SD_Send_CMDx (SD_CMD1, SD_CMD1_ARG, SD_CMD0_CRC, r, SD_R1) != SD_R1_CARD_READY) {
         if (++attempt > SD_ATTEMPTS_CMD1) {
           return SD_ERROR;
         }
@@ -129,7 +129,7 @@ uint8_t SD_Init (SD * sd)
  *
  * @return  void
  */
-void SD_PowerUp (void)
+void SD_Power_Up (void)
 {
   // Power Up Time Delay
   // ----------------------------------------------------------------
