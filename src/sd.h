@@ -130,7 +130,7 @@
    *
    * @return  void
    */
-  void SD_PowerUp (void);
+  void SD_Power_Up (void);
 
   /**
    * @brief   SD Send SD Command
