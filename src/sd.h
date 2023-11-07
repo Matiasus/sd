@@ -54,21 +54,21 @@
   #define SD_CMD8                 (0x40+8)    // SEND_IF_COND / voltage information and asks the accessed card whether card can operate in supplied voltage range
   #define SD_CMD8_ARG             0x000001AA  // check pattern AA / Phzsical Layer Spec Version 3.01 page 62
   #define SD_CMD8_CRC             0x87
- 
+
   #define SD_CMD55                (0x40+55)   // APP_CMD
-  #define SD_CMD55_ARG            0x00000000  // 
+  #define SD_CMD55_ARG            0x00000000  //
   #define SD_CMD55_CRC            0x00        // CRC
-  
+
   #define SD_ACMD41               (0x40+41)   // SD_SEND_OP_COND (SDC) / Activates the card’s initialization process
   #define SD_ACMD41_ARG           0x40000000  // 0x40000000 -> HCS=1 SDHC or SDXC Supported, 0x00000000 -> HCS=0 SDSC Only Host
   #define SD_ACMD41_CRC           0x00        // CRC
 
   #define SD_CMD58                (0x40+58)   // READ_OCR
-  #define SD_CMD58_ARG            0x00000000  // 
+  #define SD_CMD58_ARG            0x00000000  //
   #define SD_CMD58_CRC            0x00        // CRC
-  
+
   #define SD_CMD1                 (0x40+1)    // SD_SEND_OP_COND (MMC) / Activate the card's initialization process
-  #define SD_CMD1_ARG             0x00000000  // 
+  #define SD_CMD1_ARG             0x00000000  //
   #define SD_CMD1_CRC             0x00        // CRC
 
   #define SD_CMD9                 (0x40+9)    // SEND_CSD / asks the selected card to send its card-specific data (CSD)
@@ -93,6 +93,7 @@
   #define SD_ATTEMPTS_CMD1        0xff
   #define SD_ATTEMPTS_CMD8        0xff
   #define SD_ATTEMPTS_CMD55       0xff
+  #define SD_ATTEMPTS_CMD17       1563
 
   #define SD_R1_CARD_READY        0x00
   #define SD_R1_IDLE_STATE        0x01
@@ -106,10 +107,11 @@
   #define SD_CMD8_VOLT_27_36_V    0x01
   #define SD_CMD58_READY          0x80
   #define SD_CMD58_CCS            0x40
-  
+
+  #define SD_SDHC_BLOCKLEN        512
+
   typedef struct SD {
-    uint8_t success;                          // 0 - error, 1 - success
-    uint8_t voltage_accept;                   // 0 - accepted, 1 - rejected / CMD8
+    uint8_t voltage;                          // 0 - accepted 2,7-3,6V, 1 - rejected / CMD8
     uint8_t sdhc;                             // 0 - unknown, 1 - SDSC, 2 - SDHC or SDXC / CMD58
     uint8_t version;                          // 0 - unknown, 1 - SD Ver.2+ (Block Address), 2 - SD Ver.2+, 3 - SD Ver.1, 4 - MMC Ver.3
   } SD;
@@ -123,6 +125,17 @@
    */
   uint8_t SD_Init (SD *);
 
+
+  /**
+   * @brief   SD Card Read Data
+   *
+   * @param   uint32_t
+   * @param   uint8_t *
+   *
+   * @return  uint8_t
+   */
+  uint8_t SD_Read_Block (uint32_t, uint8_t *);
+
   /**
    * @brief   SD Card Power Up Sequence
    *
@@ -135,7 +148,7 @@
   /**
    * @brief   SD Send SD Command
    *
-   * @param   uint8_t command 
+   * @param   uint8_t command
    * @param   uint32_t argument
    * @param   uint8_t crc
    * @param   uint8_t * response
