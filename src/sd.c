@@ -39,11 +39,11 @@ uint8_t SD_Init (SD * sd)
   // ----------------------------------------------------------------
   SPI_Init (SPI_SS, SPI_MASTER | SPI_MODE_0 | SPI_MSB_FIRST | SPI_FOSC_DIV_128);
 
-  // Power Up 
+  // Power Up
   // ----------------------------------------------------------------
   SD_Power_Up ();
- 
-  // Idle State - CMD0 
+
+  // Idle State - CMD0
   // ----------------------------------------------------------------
   attempt = 0;
   while (SD_Send_CMDx (SD_CMD0, SD_CMD0_ARG, SD_CMD0_CRC, r, SD_R1) != SD_R1_IDLE_STATE) {
@@ -57,15 +57,15 @@ uint8_t SD_Init (SD * sd)
   if ((r[4] != (uint8_t) SD_CMD8_ARG) ||                // check sent pattern
       (r[3] != SD_CMD8_VOLT_27_36_V)) {                 // check voltage
     return SD_ERROR;
-  } 
-  else if (r[0] == SD_R1_IDLE_STATE) {                  // check idle state    
+  }
+  else if (r[0] == SD_R1_IDLE_STATE) {                  // check idle state
     sd->voltage_accept = 1;                             // accepted voltage range 2,7-3,6V
     // Send If Comdition - ACMD41 for SD Ver.2+
     // --------------------------------------------------------------
     attempt = 0;
     do {
       SD_Send_CMDx (SD_CMD55, SD_CMD55_ARG, SD_CMD55_CRC, r, SD_R1);
-      if ((r[0] == SD_R1_CARD_READY) || 
+      if ((r[0] == SD_R1_CARD_READY) ||
           (r[0] == SD_R1_IDLE_STATE)) {
         SD_Send_CMDx (SD_ACMD41, SD_ACMD41_ARG, SD_ACMD41_CRC, r, SD_R1);
       }
@@ -94,7 +94,7 @@ uint8_t SD_Init (SD * sd)
     attempt = 0;
     do {
       SD_Send_CMDx (SD_CMD55, SD_CMD55_ARG, SD_CMD55_CRC, r, SD_R1);
-      if ((r[0] == SD_R1_CARD_READY) || 
+      if ((r[0] == SD_R1_CARD_READY) ||
           (r[0] == SD_R1_IDLE_STATE)) {
         SD_Send_CMDx (SD_ACMD41, 0x00000000, SD_ACMD41_CRC, r, SD_R1);
       }
@@ -112,15 +112,65 @@ uint8_t SD_Init (SD * sd)
           return SD_ERROR;
         }
       }
-      sd->version = 4;                                  // MMC Ver.3 Byte Address      
+      sd->version = 4;                                  // MMC Ver.3 Byte Address
     }
   }
 
   sd->success = 1;                                      // SD card initialized
-  
+
   return SD_SUCCESS;
 }
 
+/**
+ * @brief   SD Card Read Data
+ *
+ * @param   uint32_t address
+ * @param   uint8_t * buffer
+ *
+ * @return  uint8_t
+ */
+uint8_t SD_Read_Block (uint32_t address, uint8_t * buffer)
+{
+  uint8_t r1;
+  uint8_t token = 0xff;
+  uint16_t i = 0;
+
+  SPI_Transfer (0xff);                                  // dummy byte
+  CS_ENABLE ();                                         // CS low
+  SPI_Transfer (0xff);                                  // dummy byte
+
+  // === R1 response ===
+  // ----------------------------------------------------------------
+  SD_Send_Command (SD_CMD17, address, 0x00);
+  r1 = SD_Get_Response_R1 ();                           // get R1
+
+  if (r1 == SD_R1_CARD_READY) {                         // card not ready
+    // max 100ms
+    // --------------------------------------------------------------
+    while (++i < SD_ATTEMPTS_CMD17) {
+      if ((token = SPI_Transfer (0xff)) != 0xff) {
+        break;
+      }
+    }
+    // fill buffer with 512 bytes
+    // --------------------------------------------------------------
+    if (token == 0xfe) {                                // start token
+      for (i=0; i<SD_SDHC_BLOCKLEN; i++) {
+        buffer[i] = SPI_Transfer (0xff);
+      }
+      // CRC 16bit
+      // ------------------------------------------------------------
+      SPI_Transfer (0xff);
+      SPI_Transfer (0xff);
+    }
+  }
+
+  SPI_Transfer (0xff);                                  // dummy byte
+  CS_DISABLE ();                                        // CS high
+  SPI_Transfer (0xff);                                  // dummy byte
+
+  return token;
+}
 
 /**
  * @brief   SD Card Power Up Sequence
@@ -175,7 +225,7 @@ uint8_t SD_Send_CMDx (uint8_t cmd, uint32_t arg, uint8_t crc, uint8_t * r, uint8
   SPI_Transfer (0xff);
   CS_DISABLE ();                                        // CS high
   SPI_Transfer (0xff);
-  
+
   return response;
 }
 
