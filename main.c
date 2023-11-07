@@ -31,10 +31,13 @@
  */
 int main (void)
 {
-  char str[10];
-  //
-  // -------------------------------------------------------------------------------------  
-  SD sd = { .success = 0, .cmd8_voltage_accept = 0, .cmd58_sdhc = 0 };
+  // SD init structure
+  // -------------------------------------------------------------------------------------
+  SD sd = {
+    .voltage = 0,
+    .sdhc = 0,
+    .version = 0
+  };
 
   // init LCD SSD1306
   // -------------------------------------------------------------------------------------
@@ -45,18 +48,27 @@ int main (void)
 
   // init SD Card
   // -------------------------------------------------------------------------------------
-  SSD1306_SetPosition (1, 2);
-  SSD1306_DrawString ("SD Card init", NORMAL);
-  SSD1306_SetPosition (103, 2); 
   if (SD_Init (&sd) == SD_SUCCESS) {
-    SSD1306_DrawString ("[ok]", NORMAL);
+    if (sd.voltage == 1) {
+      SSD1306_SetPosition (1, 2);
+      SSD1306_DrawString ("VOLT: 2.7-3.6V", NORMAL);
+    }
+    if (sd.sdhc == 1) {
+      SSD1306_SetPosition (1, 3);
+      SSD1306_DrawString ("SDSC: <2GB", NORMAL);
+    } else if (sd.sdhc == 2) {
+      SSD1306_SetPosition (1, 3);
+      SSD1306_DrawString ("SDHC: 2-32GB", NORMAL);     
+    }
+    if ((sd.version == 1) || (sd.version == 2)) {
+      SSD1306_SetPosition (1, 4);
+      SSD1306_DrawString ("VERS: 2", NORMAL);
+    }
   } else {
-    SSD1306_DrawString ("[ko]", NORMAL);
+    SSD1306_SetPosition (1, 2);
+    SSD1306_DrawString ("SD ERROR", NORMAL);
   }
-  SSD1306_SetPosition (1, 4);   
-  sprintf (str, "SD: %x %x %x", sd.success, sd.cmd8_voltage_accept, sd.cmd58_sdhc);
-  SSD1306_DrawString (str, NORMAL);
-  
+
   // EXIT
   // -------------------------------------------------------------------------------------
   return 0;
