@@ -21,6 +21,7 @@
 
 // INCLUDE libraries
 #include "src/sd.h"
+#include "src/fat32.h"
 
 /**
  * @desc    Main function
@@ -31,43 +32,43 @@
  */
 int main (void)
 {
-  // SD init structure
+  //uint16_t j = 0;
+  char str[10];
+  uint8_t buffer[512];
+  
+  // Init LCD SSD1306
   // -------------------------------------------------------------------------------------
-  SD sd = {
-    .voltage = 0,
-    .sdhc = 0,
-    .version = 0
-  };
-
-  // init LCD SSD1306
-  // -------------------------------------------------------------------------------------
-  SSD1306_Init ();                                                // init lcd
+  SSD1306_Init (SSD1306_ADDR);
   SSD1306_ClearScreen ();
   SSD1306_SetPosition (10, 0);
-  SSD1306_DrawString ("SDCARD INTERFACING", NORMAL);
+  SSD1306_DrawString ("FAT32 INTERFACING", NORMAL);
 
-  // init SD Card
-  // -------------------------------------------------------------------------------------
-  if (SD_Init (&sd) == SD_SUCCESS) {
-    if (sd.voltage == 1) {
-      SSD1306_SetPosition (1, 2);
-      SSD1306_DrawString ("VOLT: 2.7-3.6V", NORMAL);
-    }
-    if (sd.sdhc == 1) {
-      SSD1306_SetPosition (1, 3);
-      SSD1306_DrawString ("SDSC: <2GB", NORMAL);
-    } else if (sd.sdhc == 2) {
-      SSD1306_SetPosition (1, 3);
-      SSD1306_DrawString ("SDHC: 2-32GB", NORMAL);     
-    }
-    if ((sd.version == 1) || (sd.version == 2)) {
-      SSD1306_SetPosition (1, 4);
-      SSD1306_DrawString ("VERS: 2", NORMAL);
-    }
-  } else {
-    SSD1306_SetPosition (1, 2);
-    SSD1306_DrawString ("SD ERROR", NORMAL);
+  // Read MBR
+  // ----------------------------------------------------------------
+  if (FAT32_Init() == FAT32_ERROR) {
+    SSD1306_SetPosition (20, 3);
+    SSD1306_DrawString ("ERROR", NORMAL);
+    return 0;
   }
+
+  SD_Read_Block (0, buffer);
+  s_MBR * MBR = (s_MBR *) buffer;
+
+  SSD1306_SetPosition (2, 4);
+  SSD1306_DrawString ("SIGN: 0x", NORMAL);
+  sprintf (str, "%x%x", MBR->signature[0], MBR->signature[1]);
+  SSD1306_DrawString (str, NORMAL);
+
+  uint32_t lba;
+  lba = ((((unsigned long) MBR->partition1.LBABegin[3])<<24) & 0xFF000000) |
+        ((((unsigned long) MBR->partition1.LBABegin[2])<<16) & 0x00FF0000) |
+        ((((unsigned long) MBR->partition1.LBABegin[1])<< 8) & 0x0000FF00) |
+        ((((unsigned long) MBR->partition1.LBABegin[0])<< 0) & 0x000000FF) ;
+
+  SSD1306_SetPosition (2, 5);
+  SSD1306_DrawString ("LBAS: 0x", NORMAL);
+  sprintf (str, "%08x", (unsigned int) lba);
+  SSD1306_DrawString (str, NORMAL);
 
   // EXIT
   // -------------------------------------------------------------------------------------
