@@ -24,109 +24,34 @@
 // @includes
 #include "ssd1306.h"
 
-// +---------------------------+
-// |      Set MUX Ratio        |
-// +---------------------------+
-// |        0xA8, 0x3F         |
-// +---------------------------+
-//              |
-// +---------------------------+
-// |    Set Display Offset     |
-// +---------------------------+
-// |        0xD3, 0x00         |
-// +---------------------------+
-//              |
-// +---------------------------+
-// |  Set Display Start Line   |
-// +---------------------------+
-// |          0x40             |
-// +---------------------------+
-//              |
-// +---------------------------+
-// |     Set Segment Remap     |
-// +---------------------------+
-// |       0xA0 / 0xA1         |
-// +---------------------------+
-//              |
-// +---------------------------+
-// |   Set COM Output Scan     |
-// |        Direction          |
-// +---------------------------+
-// |       0xC0 / 0xC8         |
-// +---------------------------+
-//              |
-// +---------------------------+
-// |   Set COM Pins hardware   |
-// |       configuration       |
-// +---------------------------+
-// |        0xDA, 0x02         |
-// +---------------------------+
-//              |
-// +---------------------------+
-// |   Set Contrast Control    |
-// +---------------------------+
-// |        0x81, 0x7F         |
-// +---------------------------+
-//              |
-// +---------------------------+
-// | Disable Entire Display On |
-// +---------------------------+
-// |          0xA4             |
-// +---------------------------+
-//              |
-// +---------------------------+
-// |    Set Normal Display     |
-// +---------------------------+
-// |          0xA6             |
-// +---------------------------+
-//              |
-// +---------------------------+
-// |    Set Osc Frequency      |
-// +---------------------------+
-// |       0xD5, 0x80          |
-// +---------------------------+
-//              |
-// +---------------------------+
-// |    Enable charge pump     |
-// |        regulator          |
-// +---------------------------+
-// |       0x8D, 0x14          |
-// +---------------------------+
-//              |
-// +---------------------------+
-// |        Display On         |
-// +---------------------------+
-// |          0xAF             |
-// +---------------------------+
-
-// @array Init command
+// @const uint8_t - List of init commands according to datasheet SSD1306
 const uint8_t INIT_SSD1306[] PROGMEM = {
-  18,                                                             // number of initializers
-  0, SSD1306_DISPLAY_OFF,                                         // 0xAE = Set Display OFF
-  1, SSD1306_SET_MUX_RATIO, 63,                                   // 0xA8 - 64MUX for 128 x 64 version
-                                                                  //      - 32MUX for 128 x 32 version
-  1, SSD1306_MEMORY_ADDR_MODE, 0x00,                              // 0x20 = Set Memory Addressing Mode
+  17,                                                             // number of initializers
+  //SSD1306_RESET, 0,                                               // 0xE4 = Software Reset?
+  SSD1306_DISPLAY_OFF, 0,                                         // 0xAE = Set Display OFF
+  SSD1306_SET_MUX_RATIO, 1, 0x3F,                                 // 0xA8 - 0x3F for 128 x 64 version (64MUX)
+                                                                  //      - 0x1F for 128 x 32 version (32MUX)
+  SSD1306_MEMORY_ADDR_MODE, 1, 0x00,                              // 0x20 = Set Memory Addressing Mode
                                                                   // 0x00 - Horizontal Addressing Mode
                                                                   // 0x01 - Vertical Addressing Mode
                                                                   // 0x02 - Page Addressing Mode (RESET)
-  2, SSD1306_SET_COLUMN_ADDR, START_COLUMN_ADDR, END_COLUMN_ADDR, // 0x21 = Set Column Address, 0 - 127
-  2, SSD1306_SET_PAGE_ADDR, START_PAGE_ADDR, END_PAGE_ADDR,       // 0x22 = Set Page Address, 0 - 7
-  0, SSD1306_SET_START_LINE,                                      // 0x40
-  1, SSD1306_DISPLAY_OFFSET, 0x00,                                // 0xD3
-  0, SSD1306_SEG_REMAP_OP,                                        // 0xA0 / remap 0xA1
-  0, SSD1306_COM_SCAN_DIR_OP,                                     // 0xC0 / remap 0xC8
-  1, SSD1306_COM_PIN_CONF, 0x12,                                  // 0xDA, 0x12 - Disable COM Left/Right remap, Alternative COM pin configuration
+  SSD1306_SET_START_LINE, 0,                                      // 0x40
+  SSD1306_DISPLAY_OFFSET, 1, 0x00,                                // 0xD3
+  SSD1306_SEG_REMAP_OP, 0,                                        // 0xA0 / remap 0xA1
+  SSD1306_COM_SCAN_DIR_OP, 0,                                     // 0xC0 / remap 0xC8
+  SSD1306_COM_PIN_CONF, 1, 0x12,                                  // 0xDA, 0x12 - Disable COM Left/Right remap, Alternative COM pin configuration
                                                                   //       0x12 - for 128 x 64 version
                                                                   //       0x02 - for 128 x 32 version
-  1, SSD1306_SET_CONTRAST, 0x7F,                                  // 0x81, 0x7F - reset value (max 0xFF)
-  0, SSD1306_DIS_ENT_DISP_ON,                                     // 0xA4
-  0, SSD1306_DIS_NORMAL,                                          // 0xA6
-  1, SSD1306_SET_OSC_FREQ, 0x80,                                  // 0xD5, 0x80 => D=1; DCLK = Fosc / D <=> DCLK = Fosc
-  1, SSD1306_SET_PRECHARGE, 0xc2,                                 // 0xD9, higher value less blinking
+  SSD1306_SET_CONTRAST, 1, 0x7F,                                  // 0x81, 0x7F - reset value (max 0xFF)
+  SSD1306_DIS_ENT_DISP_ON, 0,                                     // 0xA4
+  SSD1306_DIS_NORMAL, 0,                                          // 0xA6
+  SSD1306_SET_OSC_FREQ, 1, 0x80,                                  // 0xD5, 0x80 => D=1; DCLK = Fosc / D <=> DCLK = Fosc
+  SSD1306_SET_PRECHARGE, 1, 0xc2,                                 // 0xD9, higher value less blinking
                                                                   // 0xC2, 1st phase = 2 DCLK,  2nd phase = 13 DCLK
-  1, SSD1306_VCOM_DESELECT, 0x20,                                 // Set V COMH Deselect, reset value 0x22 = 0,77xUcc
-  1, SSD1306_SET_CHAR_REG, 0x14,                                  // 0x8D, Enable charge pump during display on
-  0, SSD1306_DISPLAY_ON                                           // 0xAF = Set Display ON
+  SSD1306_VCOM_DESELECT, 1, 0x20,                                 // Set V COMH Deselect, reset value 0x22 = 0,77xUcc
+  SSD1306_SET_CHAR_REG, 1, 0x14,                                  // 0x8D, Enable charge pump during display on
+  SSD1306_DEACT_SCROLL, 0,                                        // 0x2E
+  SSD1306_DISPLAY_ON, 0                                           // 0xAF = Set Display ON
 };
 
 unsigned short int _indexCol = START_COLUMN_ADDR;                 // @var global - cache index column
@@ -189,50 +114,56 @@ uint8_t SSD1306_Send_Command (uint8_t command)
 /**
  * @desc    SSD1306 Init
  *
- * @param   void
+ * @param   uint8_t address
  *
  * @return  uint8_t
  */
-uint8_t SSD1306_Init (void)
+uint8_t SSD1306_Init (uint8_t address)
 {
-  const uint8_t *commands = INIT_SSD1306;                         // variables
-  uint8_t no_of_commands = pgm_read_byte (commands++);            // number of commands
-  uint8_t no_of_arguments;                                        // number od arguments
-  uint8_t command;                                                // command
-  uint8_t status = INIT_STATUS;                                   // TWI init status 0xFF
+  const uint8_t * list = INIT_SSD1306;
+  uint8_t status = INIT_STATUS;                                   // init status
+  uint8_t arguments;
+  uint8_t commands = pgm_read_byte (list++);
 
-  // TWI INIT
+  // TWI: Init
   // -------------------------------------------------------------------------------------
   TWI_Init ();
 
-  // TWI START & SLAW
+  // TWI: start & SLAW
   // -------------------------------------------------------------------------------------
-  status = SSD1306_Send_StartAndSLAW (SSD1306_ADDR);              // start & SLAW
-  if (SSD1306_SUCCESS != status) {                                // check status
-    return status;                                                // error
+  status = SSD1306_Send_StartAndSLAW (address);
+  if (SSD1306_SUCCESS != status) {
+    return status;
   }
-  // SEND COMMAND & ARGUMENTS
+
+  // SW RESET
+  // -----------------------------------------------------------------------------------
+  status = SSD1306_Send_Command (SSD1306_RESET);
+  if (SSD1306_SUCCESS != status) {
+    return status;
+  }
+  _delay_ms (1);
+
+  // Commands & Arguments
   // -------------------------------------------------------------------------------------
-  while (no_of_commands) {                                        // commands loop
-    no_of_arguments = pgm_read_byte (commands++);                 // number of arguments
-    command = pgm_read_byte (commands++);                         // command
-    // Send commands
+  while (commands--) {
+    // Command
     // -----------------------------------------------------------------------------------
-    status = SSD1306_Send_Command (command);                      // send command
-    if (SSD1306_SUCCESS != status) {                              // check status
-      return status;                                              // error
+    status = SSD1306_Send_Command (pgm_read_byte(list++));
+    if (SSD1306_SUCCESS != status) {
+      return status;
     }
-    // Send arguments
+    // Arguments
     // -----------------------------------------------------------------------------------
-    while (no_of_arguments--) {
-      status = SSD1306_Send_Command (pgm_read_byte(commands++));  // send argument
-      if (SSD1306_SUCCESS != status) {                            // check status
-        return status;                                            // error
+    arguments = pgm_read_byte (list++);
+    while (arguments--) {
+      status = SSD1306_Send_Command (pgm_read_byte(list++));  // argument
+      if (SSD1306_SUCCESS != status) {
+        return status;
       }
     }
-    no_of_commands--;                                             // next command
   }
-  // TWI STOP
+  // TWI: Stop
   // -------------------------------------------------------------------------------------
   TWI_Stop ();
 
@@ -309,14 +240,43 @@ uint8_t SSD1306_InverseScreen (void)
 uint8_t SSD1306_ClearScreen (void)
 {
   uint8_t status = INIT_STATUS;                                   // TWI init status 0xFF
-  uint16_t i = 0;                                                 // counter
-
+  
   // TWI START & SLAW
   // -------------------------------------------------------------------------------------
   status = SSD1306_Send_StartAndSLAW (SSD1306_ADDR);              // start & SLAW
   if (SSD1306_SUCCESS != status) {                                // check status
     return status;                                                // error
   }
+  // COLUMN
+  // -------------------------------------------------------------------------------------
+  status = SSD1306_Send_Command (SSD1306_SET_COLUMN_ADDR);        // 0x21
+  if (SSD1306_SUCCESS != status) {                                // check status
+    return status;                                                // error
+  }
+  status = SSD1306_Send_Command (0);                              // start COLUMN
+  if (SSD1306_SUCCESS != status) {                                // check status
+    return status;                                                // error
+  }
+  status = SSD1306_Send_Command (END_COLUMN_ADDR);                // end COLUMN
+  if (SSD1306_SUCCESS != status) {                                // check status
+    return status;                                                // error
+  }
+  _indexCol = 0;                                                  // update column index
+  // PAGE
+  // -------------------------------------------------------------------------------------
+  status = SSD1306_Send_Command (SSD1306_SET_PAGE_ADDR);          // 0x22
+  if (SSD1306_SUCCESS != status) {                                // check status
+    return status;                                                // error
+  }
+  status = SSD1306_Send_Command (0);                              // start PAGE
+  if (SSD1306_SUCCESS != status) {                                // check status
+    return status;                                                // error
+  }
+  status = SSD1306_Send_Command (END_PAGE_ADDR);                  // end PAGE
+  if (SSD1306_SUCCESS != status) {                                // check status
+    return status;                                                // error
+  }
+  _indexPage = 0;                                                 // update column index  
   // TWI control byte data stream
   // -------------------------------------------------------------------------------------
   status = TWI_MT_Send_Data (SSD1306_DATA_STREAM);                // send data 0x40
@@ -325,12 +285,11 @@ uint8_t SSD1306_ClearScreen (void)
   }
   //  send clear byte to memory lcd
   // -------------------------------------------------------------------------------------
-  while (i < CACHE_SIZE_MEM) {
+  for (uint16_t i=0; i<CACHE_SIZE_MEM; i++) {
     status = TWI_MT_Send_Data (CLEAR_COLOR);                      // send data 0x00
     if (SSD1306_SUCCESS != status) {                              // check status
       return status;                                              // error
     }
-    i++;                                                          // update counter
   }
   // TWI STOP
   // -------------------------------------------------------------------------------------
