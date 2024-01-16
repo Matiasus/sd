@@ -27,6 +27,10 @@
   #define FAT32_ERROR                   0xff
   #define FAT32_SUCCESS                 0x00
 
+  // Master Boot Record 
+  // --------------------------------------------------------------------------------------
+  #define MBR_SIGNATURE                 0x55AA
+
   // Partition Type used in the partition record
   //
   // @src https://d1.amobbs.com/bbs_upload782111/files_2/armok0150242.pdf
@@ -88,5 +92,32 @@
     uint8_t empty[509];
     uint8_t signature[2];                               // offset 0x1FE - signature => must be 0xAA55
   } __attribute__((packed)) s_VID;
+
+  /**
+   * @brief   FAT32 Init
+   *
+   * @param   void
+   *
+   * @return  uint8_t
+   */
+  uint8_t FAT32_Init (void);
+
+  /**
+   * @brief   Read Master Boot Record
+   *
+   * @param   void
+   *
+   * @return  uint8_t
+   */
+  uint8_t FAT32_Master_Boot_Record (void);
+
+  /**
+   * @brief   Get 4 Bytes Little Endian
+   *
+   * @param   uint8_t * number
+   *
+   * @return  uint32_t
+   */
+  uint8_t FAT32_Get_Uint32_LE (uint8_t *);
 
 #endif
