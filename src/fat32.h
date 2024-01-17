@@ -23,13 +23,14 @@
 #define __FAT32_H__
 
   // RETURN
-  // ------------------------------------------------------------------
+  // --------------------------------------------------------------------------------------
   #define FAT32_ERROR                   0xff
   #define FAT32_SUCCESS                 0x00
 
   // Master Boot Record 
   // --------------------------------------------------------------------------------------
-  #define MBR_SIGNATURE                 0x55AA
+  #define FAT32_SIGNATURE               0x55AA
+  #define FAT32_NUM_OF_FATS             2
 
   // Partition Type used in the partition record
   //
@@ -112,12 +113,27 @@
   uint8_t FAT32_Master_Boot_Record (void);
 
   /**
+   * --------------------------------------------------------------------------------------------+
+   * PRIMITIVE / PRIVATE FUNCTIONS
+   * --------------------------------------------------------------------------------------------+
+   */
+
+  /**
+   * @brief   Get 2 Bytes Little Endian
+   *
+   * @param   uint8_t * number
+   *
+   * @return  uint16_t
+   */
+  uint16_t FAT32_Get_2Bytes_LE (uint8_t *);
+  
+  /**
    * @brief   Get 4 Bytes Little Endian
    *
    * @param   uint8_t * number
    *
    * @return  uint32_t
    */
-  uint8_t FAT32_Get_Uint32_LE (uint8_t *);
+  uint32_t FAT32_Get_4Bytes_LE (uint8_t *);
 
 #endif
