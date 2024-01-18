@@ -65,15 +65,15 @@ uint32_t FAT32_Master_Boot_Record (void)
   SD_Read_Block (0, buffer);
   s_MBR * MBR = (s_MBR *) buffer;
 
-  lba_begin = FAT32_Get_4Bytes_LE (MBR->partition1.LBABegin);                 // LBA begin address
+  lba_begin = FAT32_Get_4Bytes_LE (MBR->partition1.LBA_Begin);                // LBA begin address
   volume_id = lba_begin * BYTES_PER_SECTOR;                                   // volume id start address
   
   // Checking
   // ----------------------------------------------------------------
-  if ((FAT32_Get_2Bytes_LE (MBR->signature) != FAT32_SIGNATURE) ||            // check FAT32 signature 0x55AA
-      (MBR->partition1.status & PE_STATUS_ACTIVE_FLAG)          ||            // only 0x80 or 0x00 status accepted
-      ((MBR->partition1.typeCode != PE_TYPECODE_FAT32) &&                     // only FAT32 or FAT32LBA type code accepted
-       (MBR->partition1.typeCode != PE_TYPECODE_FAT32LBA))) {                 // 
+  if ((FAT32_Get_2Bytes_LE (MBR->Signature) != FAT32_SIGNATURE) ||            // check FAT32 signature 0x55AA
+      (MBR->partition1.Status & PE_STATUS_ACTIVE_FLAG)          ||            // only 0x80 or 0x00 status accepted
+      ((MBR->partition1.TypeCode != PE_TYPECODE_FAT32) &&                     // only FAT32 or FAT32LBA type code accepted
+       (MBR->partition1.TypeCode != PE_TYPECODE_FAT32LBA))) {                 // 
     return FAT32_ERROR;
   }
   
@@ -99,24 +99,30 @@ uint32_t FAT32_Master_Boot_Record (void)
  *
  * @return  uint8_t
  */
-uint8_t FAT32_Volume_ID (uint32_t lba_begin)
+uint8_t FAT32_Boot_Sector (uint32_t lba_begin)
 {
   // Read BPB / Volume ID or Boot Sector or Block Parameter Bios
   // ----------------------------------------------------------------
   SD_Read_Block (lba_begin * , buffer);
-  s_VID * VID = (s_VID * BYTES_PER_SECTOR) buffer;
+  s_BS * BS = (s_BS *) buffer;
 
   // Checking
   // ----------------------------------------------------------------
-  if ((FAT32_Get_2Bytes_LE (VID->signature) != FAT32_SIGNATURE) ||            // check signature 0x55AA
-      (FAT32_Get_Uint16_LE (VID->bytesPerSector) != BYTES_PER_SECTOR) ||      // only 512 Bytes per sector accepted
-      (VID->numOfFat != FAT32_NUM_OF_FATS)) {                                 // only 2 FAT tables accepted
+  if ((FAT32_Get_2Bytes_LE (BS->Signature) != FAT32_SIGNATURE)) {             // check signature 0x55AA
     return FAT32_ERROR;
   }
-  
-  uint8_t sectors_per_cluster = VID->sectorsPerCluster;
-  uint16_t reserved_sector = FAT32_Get_Uint16_LE (VID->reservedSectors);
-  uint32_t fat_begin = (lba_begin + reserved_sector) * BYTES_PER_SECTOR;
+  if ((FAT32_Get_Uint16_LE (BS->BytesPerSector) != BYTES_PER_SECTOR)) {       // only 512 bytes per sector accepted
+    return FAT32_ERROR;
+  }
+  if (BS->NumberOfFATs != FAT32_NUM_OF_FATS) {                                // only 2 FAT tables accepted
+    return FAT32_ERROR;
+  }
+
+  // Calculation
+  // ----------------------------------------------------------------
+  uint8_t sectors_per_cluster = BS->SectorsPerCluster;
+  uint16_t reserved_sectors = FAT32_Get_Uint16_LE (VID->ReservedSectors);
+  uint32_t fat_begin = (lba_begin + reserved_sectors) * BYTES_PER_SECTOR;
 }
 /**
  * --------------------------------------------------------------------------------------------+
