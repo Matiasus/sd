@@ -22,6 +22,8 @@
 #ifndef __FAT32_H__
 #define __FAT32_H__
 
+  #include "sd.h"
+
   // RETURN
   // --------------------------------------------------------------------------------------
   #define FAT32_ERROR                   0xff
@@ -29,7 +31,7 @@
 
   // Master Boot Record 
   // --------------------------------------------------------------------------------------
-  #define FAT32_SIGNATURE               0x55AA
+  #define FAT32_SIGNATURE               0xAA55
   #define FAT32_NUM_OF_FATS             2
 
   // Partition Type used in the partition record
@@ -63,64 +65,85 @@
   #define BYTES_PER_SECTOR              0x0200          // 512 Bytes
 
   // Partition Entry PE
-  typedef struct s_PE {
+  // 16 Bytes
+  typedef struct PE_t {
     uint8_t Status;                                     // Boot indicator bit flag: 0 = no, 0x80 = bootable (or "active")
     uint8_t CHS_Begin[3];                               // Cylinder/Head/Sector start
     uint8_t TypeCode;                                   // partition type: 0x0E-FAT16 LBA, 0x0B-FAT32, 0x0C-FAT32 LBA
     uint8_t CHS_End[3];                                 // Cylinder/Head/Sector end
     uint8_t LBA_Begin[4];                               // LBA of first sector
     uint8_t Sectors[4];                                 // numbers of sectors in partition
-  } __attribute__((packed)) s_PE;
+  } __attribute__((packed)) PE_t;
 
   // Master Boot Record MBR
-  typedef struct s_MBR {
+  // 512 Bytes
+  typedef struct MBR_t {
     uint8_t bootstrap[446];
-    s_PE Partition1;                                    // 16 bytes Partition Entry
-    s_PE Partition2;                                    // 16 bytes Partition Entry
-    s_PE Partition3;                                    // 16 bytes Partition Entry
-    s_PE Partition4;                                    // 16 bytes Partition Entry
+    PE_t Partition1;                                    // 16 bytes Partition Entry
+    PE_t Partition2;                                    // 16 bytes Partition Entry
+    PE_t Partition3;                                    // 16 bytes Partition Entry
+    PE_t Partition4;                                    // 16 bytes Partition Entry
     uint8_t Signature[2];                               // signature => must be 0xAA55
-  } __attribute__((packed)) s_MBR;
+  } __attribute__((packed)) MBR_t;
 
   // Boot Sector (or Volume ID, or Volume Boot Sector)
+  // 512 Bytes
   // @source https://www.win.tue.nl/~aeb/linux/fs/fat/fat-1.html
   // The first sector (512 bytes) of a FAT filesystem is the boot sector. 
   // In Unix-like terminology this would be called the superblock. It contains some general information.
-  typedef struct s_BS {
+  typedef struct BS_t {
+    // 16 Bytes
+    // ------------------------------------------------------------------------------------ 
     uint8_t Jump[3];                                    // Boot strap short or near jump
     uint8_t OEM_Identifier[8];                          // Name - can be used to special case partition manager volumes
     uint8_t BytesPerSector[2];                          // bytes per logical sector
     uint8_t SectorsPerCluster;                          // sectors/cluster
     uint8_t ReservedSectors[2];                         // reserved sectors
+    // 16 Bytes
+    // ------------------------------------------------------------------------------------    
     uint8_t NumberOfFATs;                               // number of FATs
-    uint8_t RootEntries[2];                             // root directory entries, 0 for FAT32
-    uint8_t NumberOfSectors[2];                         // number of sectors
+    uint8_t RootEntries[2];                             // root directory entries, 0 for FAT32, number of root directory entries 
+    uint8_t NumberOfSectors[2];                         // number of sectors, if this value is 0, it means there are more than 65535 sectors in the volume, and the actual count is stored in the BigNumberOfSectors
     uint8_t MediaDescriptor;                            // media code
     uint8_t SectorsPerFAT[2];                           // sectors/FAT, 0 for FAT32
     uint8_t SectorsPerHead[2];                          // sectors per track
     uint8_t HeadsPerCylinder[2];                        // number of heads
     uint8_t HiddenSectors[4];                           // hidden sectors (unused)
+    // 16 Bytes
+    // ------------------------------------------------------------------------------------    
     uint8_t BigNumberOfSectors[4];                      // number of sectors (if NumberOfSectors == 0)
     uint8_t BigSectorsPerFAT[4];                        // sectors/FAT
     uint8_t ExtFlags[2];                                // bit 8: fat mirroring, low 4: active fat
     uint8_t FSVersion[2];                               // major, minor filesystem version
-    uint8_t RootDirectoryStart[4];                      // first cluster in root directory
+    uint8_t RootDirClusNo[4];                           // first cluster in root directory
+    // Rest Bytes
+    // ------------------------------------------------------------------------------------    
     uint8_t FSInfoSector[2];                            // filesystem info sector
     uint8_t BackupBootSector[2];                        // backup boot sector
     uint8_t Reserved[12];                               // Unused
     uint8_t Empty[446];
     uint8_t Signature[2];                               // offset 0x1FE - signature => must be 0xAA55
-  } __attribute__((packed)) s_BS;
+  } __attribute__((packed)) BS_t;
 
   // Directory Table DT
-  typedef struct s_PE {
-    uint8_t Name[8];                                     // Boot indicator bit flag: 0 = no, 0x80 = bootable (or "active")
+  typedef struct DE_t {
+    // 16 Bytes
+    // ------------------------------------------------------------------------------------
+    uint8_t Name[8];                                     // boot indicator bit flag: 0 = no, 0x80 = bootable (or "active")
     uint8_t Extension[3];                                // Cylinder/Head/Sector start
     uint8_t Attribute;                                   // partition type: 0x0E-FAT16 LBA, 0x0B-FAT32, 0x0C-FAT32 LBA
-    uint8_t CHS_End[3];                                  // Cylinder/Head/Sector end
-    uint8_t LBA_Begin[4];                                // LBA of first sector
-    uint8_t Sectors[4];                                 // numbers of sectors in partition
-  } __attribute__((packed)) s_PE;
+    uint8_t Empty[2];                                    //
+    uint8_t CreateTime[2];                               // bits: 0-4 seconds/2, 5-10 minutes, 11-15 hours
+    // 16 Bytes
+    // ------------------------------------------------------------------------------------    
+    uint8_t CreateDate[2];                               // bits: 0-4 day, 5-10 month, 11-15 year from 1980
+    uint8_t LastAccessDate[2];                           // bits: 0-4 day, 5-10 month, 11-15 year from 1980
+    uint8_t FirstClustHI[2];                             // first Cluster High Bytes
+    uint8_t ChangeTime[2];                               // bits: 0-4 seconds/2, 5-10 minutes, 11-15 hours
+    uint8_t ChangeDate[2];                               // bits: 0-4 day, 5-10 month, 11-15 year from 1980
+    uint8_t FirstClustLO[2];                             // first Cluster Low Bytes
+    uint8_t FileSize[4];                                 // file size
+  } __attribute__((packed)) DE_t;
 
   /**
    * @brief   FAT32 Init
@@ -136,9 +159,18 @@
    *
    * @param   void
    *
-   * @return  uint8_t
+   * @return  uint32_t
    */
-  uint8_t FAT32_Master_Boot_Record (void);
+  uint32_t FAT32_Master_Boot_Record (void);
+  
+  /**
+   * @brief   Read Boot Sector
+   *
+   * @param   uint32_t
+   *
+   * @return  uint32_t
+   */
+  uint32_t FAT32_Boot_Sector (uint32_t);
 
   /**
    * --------------------------------------------------------------------------------------------+
