@@ -20,7 +20,6 @@
  */
 
 // INCLUDE libraries
-#include "src/sd.h"
 #include "src/fat32.h"
 
 /**
@@ -32,9 +31,10 @@
  */
 int main (void)
 {
-  //uint16_t j = 0;
   char str[10];
   uint8_t buffer[512];
+  uint32_t lba_begin;
+  uint32_t root_dir_clus_no;
   
   // Init LCD SSD1306
   // -------------------------------------------------------------------------------------
@@ -51,23 +51,19 @@ int main (void)
     return 0;
   }
 
-  SD_Read_Block (0, buffer);
-  s_MBR * MBR = (s_MBR *) buffer;
-
-  SSD1306_SetPosition (2, 4);
-  SSD1306_DrawString ("SIGN: 0x", NORMAL);
-  sprintf (str, "%x%x", MBR->signature[0], MBR->signature[1]);
+  lba_begin = FAT32_Master_Boot_Record ();
+  root_directory = FAT32_Boot_Sector (lba_begin);
+  
+  // Print
+  // ----------------------------------------------------------------
+  SSD1306_SetPosition (2, 2);
+  SSD1306_DrawString ("LBA:  0x", NORMAL);
+  sprintf (str, "%08x", (unsigned int) lba_begin);
   SSD1306_DrawString (str, NORMAL);
-
-  uint32_t lba;
-  lba = ((((unsigned long) MBR->partition1.LBABegin[3])<<24) & 0xFF000000) |
-        ((((unsigned long) MBR->partition1.LBABegin[2])<<16) & 0x00FF0000) |
-        ((((unsigned long) MBR->partition1.LBABegin[1])<< 8) & 0x0000FF00) |
-        ((((unsigned long) MBR->partition1.LBABegin[0])<< 0) & 0x000000FF) ;
-
-  SSD1306_SetPosition (2, 5);
-  SSD1306_DrawString ("LBAS: 0x", NORMAL);
-  sprintf (str, "%08x", (unsigned int) lba);
+  
+  SSD1306_SetPosition (2, 3);
+  SSD1306_DrawString ("ROOT: 0x", NORMAL);
+  sprintf (str, "%08x", (unsigned int) root_directory);
   SSD1306_DrawString (str, NORMAL);
 
   // EXIT
