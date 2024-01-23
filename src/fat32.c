@@ -60,24 +60,24 @@ uint32_t FAT32_Master_Boot_Record (void)
   // Read MBR / Master Boot Record
   // ----------------------------------------------------------------
   SD_Read_Block (0, buffer);
-  s_MBR * MBR = (s_MBR *) buffer;
+  MBR_t * MBR = (MBR_t *) buffer;
   
   // Checking
   // ----------------------------------------------------------------
   if ((FAT32_Get_2Bytes_LE (MBR->Signature) != FAT32_SIGNATURE)) {            // check signature 0xAA55
     return FAT32_ERROR;
   }
-  if (MBR->partition1.Status & PE_STATUS_ACTIVE_FLAG) {                       // only 0x80 or 0x00 status accepted
+  if (MBR->Partition1.Status & PE_STATUS_ACTIVE_FLAG) {                       // only 0x80 or 0x00 status accepted
     return FAT32_ERROR;
   }
-  if ((MBR->partition1.TypeCode != PE_TYPECODE_FAT32) &&                      // only FAT32 or FAT32LBA type code accepted
-      (MBR->partition1.TypeCode != PE_TYPECODE_FAT32LBA)) {
+  if ((MBR->Partition1.TypeCode != PE_TYPECODE_FAT32) &&                      // only FAT32 or FAT32LBA type code accepted
+      (MBR->Partition1.TypeCode != PE_TYPECODE_FAT32LBA)) {
     return FAT32_ERROR;
   }
 
   // LBA Begin Address
   // ----------------------------------------------------------------
-  lba_begin = FAT32_Get_4Bytes_LE (MBR->partition1.LBA_Begin);                // LBA begin address
+  lba_begin = FAT32_Get_4Bytes_LE (MBR->Partition1.LBA_Begin);                // LBA begin address
 
   return lba_begin;
 }
@@ -91,15 +91,18 @@ uint32_t FAT32_Master_Boot_Record (void)
  */
 uint32_t FAT32_Boot_Sector (uint32_t lba_begin)
 {
+  uint8_t buffer[512];
   uint16_t reserved_sectors;
-  uint32_t fat_begin;
-  uint32_t data_begin;
+  uint32_t sector_per_fats;
   uint32_t root_dir_clus_no;
-  
+  uint32_t fats_begin;
+  uint32_t data_begin;
+  uint32_t root_begin;
+ 
   // Read Boot Sector with BIOS Parameter Block Parameter Bios
   // ----------------------------------------------------------------
-  SD_Read_Block (lba_begin * BYTES_PER_SECTOR, buffer);
-  s_BS * BS = (s_BS *) buffer;
+  SD_Read_Block (lba_begin, buffer); // 2048*512 = 0x00100000
+  BS_t * BS = (BS_t *) buffer;
 
   // Checking
   // ----------------------------------------------------------------
@@ -115,16 +118,46 @@ uint32_t FAT32_Boot_Sector (uint32_t lba_begin)
 
   // Calculation
   // ----------------------------------------------------------------
-  reserved_sectors = FAT32_Get_2Bytes_LE (VID->ReservedSectors);
-  sector_per_fats = FAT32_Get_4Bytes_LE (BS->BigSectorsPerFAT);
-  root_dir_clus_no = FAT32_Get_4Bytes_LE (BS->RootDirClusNo);
+  reserved_sectors = FAT32_Get_2Bytes_LE (BS->ReservedSectors);               // 0x0020 = 32
+  sector_per_fats = FAT32_Get_4Bytes_LE (BS->BigSectorsPerFAT);               // 0x000039d0 = 14800
+  root_dir_clus_no = FAT32_Get_4Bytes_LE (BS->RootDirClusNo);                 // 0x00000002 = 2
+
+  fats_begin = lba_begin + reserved_sectors;                                  // 2048 + 32 = 2080
+  data_begin = fats_begin + (BS->NumberOfFATs * sector_per_fats);             // 2080 + (2 * 14800) = 31680
+  root_begin = data_begin + ((root_dir_clus_no - 2) * BS->SectorsPerCluster); // 31680 + ((2 - 2) * 32) = 31680
   
-  fat_begin = lba_begin + reserved_sectors;
-  data_begin = fat_begin + (BS->NumberOfFATs * sector_per_fats);
-  root_dir_starts = data_begin + ((root_dir_clus_no - 2) * BS->SectorsPerCluster);
-  
-  return root_dir_starts;
+  return root_begin;
 }
+
+/**
+ * @brief   Read Root Directory
+ *
+ * @param   uint32_t
+ *
+ * @return  uint32_t
+ */
+uint32_t FAT32_Root_Directory (uint32_t root_dir_starts)
+{
+  uint8_t buffer[512];
+ 
+  // Read Boot Sector with BIOS Parameter Block Parameter Bios
+  // ----------------------------------------------------------------
+  SD_Read_Block (root_dir_starts, buffer);
+
+  SSD1306_SetPosition (0, 4);
+  for (uint16_t i=0; i<512; i=i+32) {
+    DE_t * DE = (DE_t *) &buffer[i];
+    if ((DE->Name[0] != 0xe5) && 
+        (DE->Name[0] != 0x41)) {
+      for (uint8_t j=0; j<8; j++) {
+        SSD1306_DrawChar (DE->Name[j], NORMAL);
+      }
+    }
+  }
+
+  return FAT32_SUCCESS;
+}
+
 /**
  * --------------------------------------------------------------------------------------------+
  * PRIMITIVE / PRIVATE FUNCTIONS
