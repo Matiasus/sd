@@ -65,6 +65,7 @@
   #define BYTES_PER_SECTOR              0x0200          // 512 Bytes
 
   // Partition Entry PE
+  // --------------------------------------------------------------------------------------
   // 16 Bytes
   typedef struct PE_t {
     uint8_t Status;                                     // Boot indicator bit flag: 0 = no, 0x80 = bootable (or "active")
@@ -87,6 +88,7 @@
   } __attribute__((packed)) MBR_t;
 
   // Boot Sector (or Volume ID, or Volume Boot Sector)
+  // --------------------------------------------------------------------------------------
   // 512 Bytes
   // @source https://www.win.tue.nl/~aeb/linux/fs/fat/fat-1.html
   // The first sector (512 bytes) of a FAT filesystem is the boot sector. 
@@ -103,7 +105,8 @@
     // ------------------------------------------------------------------------------------    
     uint8_t NumberOfFATs;                               // number of FATs
     uint8_t RootEntries[2];                             // root directory entries, 0 for FAT32, number of root directory entries 
-    uint8_t NumberOfSectors[2];                         // number of sectors, if this value is 0, it means there are more than 65535 sectors in the volume, and the actual count is stored in the BigNumberOfSectors
+    uint8_t NumberOfSectors[2];                         // number of sectors, if this value is 0, it means there are more than 65535 sectors in the volume, 
+                                                        // and the actual count is stored in the BigNumberOfSectors
     uint8_t MediaDescriptor;                            // media code
     uint8_t SectorsPerFAT[2];                           // sectors/FAT, 0 for FAT32
     uint8_t SectorsPerHead[2];                          // sectors per track
@@ -126,12 +129,13 @@
   } __attribute__((packed)) BS_t;
 
   // Directory Table DT
+  // --------------------------------------------------------------------------------------
   typedef struct DE_t {
     // 16 Bytes
     // ------------------------------------------------------------------------------------
-    uint8_t Name[8];                                     // boot indicator bit flag: 0 = no, 0x80 = bootable (or "active")
-    uint8_t Extension[3];                                // Cylinder/Head/Sector start
-    uint8_t Attribute;                                   // partition type: 0x0E-FAT16 LBA, 0x0B-FAT32, 0x0C-FAT32 LBA
+    uint8_t Name[8];                                     // 
+    uint8_t Extension[3];                                // 
+    uint8_t Attribute;                                   // 
     uint8_t Empty[2];                                    //
     uint8_t CreateTime[2];                               // bits: 0-4 seconds/2, 5-10 minutes, 11-15 hours
     // 16 Bytes
@@ -171,6 +175,15 @@
    * @return  uint32_t
    */
   uint32_t FAT32_Boot_Sector (uint32_t);
+
+  /**
+   * @brief   Read Root Directory
+   *
+   * @param   uint32_t
+   *
+   * @return  uint32_t
+   */
+  uint32_t FAT32_Root_Directory (uint32_t);
 
   /**
    * --------------------------------------------------------------------------------------------+
