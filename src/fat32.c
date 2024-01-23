@@ -21,7 +21,6 @@
 
 // INCLUDE libraries
 // ------------------------------------------------------------------
-#include "sd.h"
 #include "fat32.h"
 
 /**
@@ -55,41 +54,32 @@ uint8_t FAT32_Init (void)
  */
 uint32_t FAT32_Master_Boot_Record (void)
 {
-  char str[10];
   uint8_t buffer[512];
   uint32_t lba_begin;
-  uint32_t volume_id;
 
   // Read MBR / Master Boot Record
   // ----------------------------------------------------------------
   SD_Read_Block (0, buffer);
   s_MBR * MBR = (s_MBR *) buffer;
-
-  lba_begin = FAT32_Get_4Bytes_LE (MBR->partition1.LBA_Begin);                // LBA begin address
-  volume_id = lba_begin * BYTES_PER_SECTOR;                                   // volume id start address
   
   // Checking
   // ----------------------------------------------------------------
-  if ((FAT32_Get_2Bytes_LE (MBR->Signature) != FAT32_SIGNATURE) ||            // check FAT32 signature 0x55AA
-      (MBR->partition1.Status & PE_STATUS_ACTIVE_FLAG)          ||            // only 0x80 or 0x00 status accepted
-      ((MBR->partition1.TypeCode != PE_TYPECODE_FAT32) &&                     // only FAT32 or FAT32LBA type code accepted
-       (MBR->partition1.TypeCode != PE_TYPECODE_FAT32LBA))) {                 // 
+  if ((FAT32_Get_2Bytes_LE (MBR->Signature) != FAT32_SIGNATURE)) {            // check signature 0xAA55
     return FAT32_ERROR;
   }
-  
-  // Print
+  if (MBR->partition1.Status & PE_STATUS_ACTIVE_FLAG) {                       // only 0x80 or 0x00 status accepted
+    return FAT32_ERROR;
+  }
+  if ((MBR->partition1.TypeCode != PE_TYPECODE_FAT32) &&                      // only FAT32 or FAT32LBA type code accepted
+      (MBR->partition1.TypeCode != PE_TYPECODE_FAT32LBA)) {
+    return FAT32_ERROR;
+  }
+
+  // LBA Begin Address
   // ----------------------------------------------------------------
-  SSD1306_SetPosition (2, 2);
-  SSD1306_DrawString ("TYPE: 0x", NORMAL);
-  sprintf (str, "%02x", MBR->partition1.typeCode);
-  SSD1306_DrawString (str, NORMAL);
+  lba_begin = FAT32_Get_4Bytes_LE (MBR->partition1.LBA_Begin);                // LBA begin address
 
-  SSD1306_SetPosition (2, 3);
-  SSD1306_DrawString ("LBA:  0x", NORMAL);
-  sprintf (str, "%08x", (unsigned int) lba);
-  SSD1306_DrawString (str, NORMAL);
-
-  return volume_id;
+  return lba_begin;
 }
 
 /**
@@ -97,21 +87,26 @@ uint32_t FAT32_Master_Boot_Record (void)
  *
  * @param   uint32_t
  *
- * @return  uint8_t
+ * @return  uint32_t
  */
-uint8_t FAT32_Boot_Sector (uint32_t lba_begin)
+uint32_t FAT32_Boot_Sector (uint32_t lba_begin)
 {
-  // Read BPB / Volume ID or Boot Sector or Block Parameter Bios
+  uint16_t reserved_sectors;
+  uint32_t fat_begin;
+  uint32_t data_begin;
+  uint32_t root_dir_clus_no;
+  
+  // Read Boot Sector with BIOS Parameter Block Parameter Bios
   // ----------------------------------------------------------------
-  SD_Read_Block (lba_begin * , buffer);
+  SD_Read_Block (lba_begin * BYTES_PER_SECTOR, buffer);
   s_BS * BS = (s_BS *) buffer;
 
   // Checking
   // ----------------------------------------------------------------
-  if ((FAT32_Get_2Bytes_LE (BS->Signature) != FAT32_SIGNATURE)) {             // check signature 0x55AA
+  if ((FAT32_Get_2Bytes_LE (BS->Signature) != FAT32_SIGNATURE)) {             // check signature 0xAA55
     return FAT32_ERROR;
   }
-  if ((FAT32_Get_Uint16_LE (BS->BytesPerSector) != BYTES_PER_SECTOR)) {       // only 512 bytes per sector accepted
+  if ((FAT32_Get_2Bytes_LE (BS->BytesPerSector) != BYTES_PER_SECTOR)) {       // only 512 bytes per sector accepted
     return FAT32_ERROR;
   }
   if (BS->NumberOfFATs != FAT32_NUM_OF_FATS) {                                // only 2 FAT tables accepted
@@ -120,9 +115,15 @@ uint8_t FAT32_Boot_Sector (uint32_t lba_begin)
 
   // Calculation
   // ----------------------------------------------------------------
-  uint8_t sectors_per_cluster = BS->SectorsPerCluster;
-  uint16_t reserved_sectors = FAT32_Get_Uint16_LE (VID->ReservedSectors);
-  uint32_t fat_begin = (lba_begin + reserved_sectors) * BYTES_PER_SECTOR;
+  reserved_sectors = FAT32_Get_2Bytes_LE (VID->ReservedSectors);
+  sector_per_fats = FAT32_Get_4Bytes_LE (BS->BigSectorsPerFAT);
+  root_dir_clus_no = FAT32_Get_4Bytes_LE (BS->RootDirClusNo);
+  
+  fat_begin = lba_begin + reserved_sectors;
+  data_begin = fat_begin + (BS->NumberOfFATs * sector_per_fats);
+  root_dir_starts = data_begin + ((root_dir_clus_no - 2) * BS->SectorsPerCluster);
+  
+  return root_dir_starts;
 }
 /**
  * --------------------------------------------------------------------------------------------+
