@@ -35,6 +35,8 @@ int main (void)
   uint32_t lba_begin;
   uint32_t root_dir_starts;
   
+  FAT32_t FAT32 = {.fats_begin = 0, .data_begin = 0, .root_begin = 0};
+  
   // Init LCD SSD1306
   // -------------------------------------------------------------------------------------
   SSD1306_Init (SSD1306_ADDR);
@@ -50,8 +52,8 @@ int main (void)
     return 0;
   }
 
-  lba_begin = FAT32_Master_Boot_Record ();
-  root_dir_starts = FAT32_Boot_Sector (lba_begin);
+  lba_begin = FAT32_Master_Boot_Record (&FAT32);
+  root_dir_starts = FAT32_Read_Boot_Sector (&FAT32);
   
   // Print
   // ----------------------------------------------------------------
@@ -62,10 +64,10 @@ int main (void)
 
   SSD1306_SetPosition (2, 3);
   SSD1306_DrawString ("ROOT: 0x", NORMAL);
-  sprintf (str, "%08lx", (unsigned long) (root_dir_starts * BYTES_PER_SECTOR));
+  sprintf (str, "%08x", (unsigned int) root_dir_starts);
   SSD1306_DrawString (str, NORMAL);
 
-  FAT32_Root_Directory (root_dir_starts);
+  FAT32_Read_Root_Dir (&FAT32);
 
   // EXIT
   // -------------------------------------------------------------------------------------
