@@ -20,7 +20,7 @@
  */
 
 // INCLUDE libraries
-#include "src/sd.h"
+#include "src/fat32.h"
 
 /**
  * @desc    Main function
@@ -32,31 +32,43 @@
 int main (void)
 {
   char str[10];
-  //
-  // -------------------------------------------------------------------------------------  
-  SD sd = { .success = 0, .cmd8_voltage_accept = 0, .cmd58_sdhc = 0 };
-
-  // init LCD SSD1306
+  uint32_t lba_begin;
+  uint32_t root_dir_starts;
+  
+  FAT32_t FAT32 = {.fats_begin = 0, .data_begin = 0, .root_begin = 0};
+  
+  // Init LCD SSD1306
   // -------------------------------------------------------------------------------------
-  SSD1306_Init ();                                                // init lcd
+  SSD1306_Init (SSD1306_ADDR);
   SSD1306_ClearScreen ();
   SSD1306_SetPosition (10, 0);
-  SSD1306_DrawString ("SDCARD INTERFACING", NORMAL);
+  SSD1306_DrawString ("FAT32 INTERFACING", NORMAL);
 
-  // init SD Card
-  // -------------------------------------------------------------------------------------
-  SSD1306_SetPosition (1, 2);
-  SSD1306_DrawString ("SD Card init", NORMAL);
-  SSD1306_SetPosition (103, 2); 
-  if (SD_Init (&sd) == SD_SUCCESS) {
-    SSD1306_DrawString ("[ok]", NORMAL);
-  } else {
-    SSD1306_DrawString ("[ko]", NORMAL);
+  // Read MBR
+  // ----------------------------------------------------------------
+  if (FAT32_Init() == FAT32_ERROR) {
+    SSD1306_SetPosition (20, 3);
+    SSD1306_DrawString ("ERROR", NORMAL);
+    return 0;
   }
-  SSD1306_SetPosition (1, 4);   
-  sprintf (str, "SD: %x %x %x", sd.success, sd.cmd8_voltage_accept, sd.cmd58_sdhc);
-  SSD1306_DrawString (str, NORMAL);
+
+  lba_begin = FAT32_Master_Boot_Record (&FAT32);
+  root_dir_starts = FAT32_Read_Boot_Sector (&FAT32);
   
+  // Print
+  // ----------------------------------------------------------------
+  SSD1306_SetPosition (2, 2);
+  SSD1306_DrawString ("LBA:  0x", NORMAL);
+  sprintf (str, "%08x", (unsigned int) lba_begin);
+  SSD1306_DrawString (str, NORMAL);
+
+  SSD1306_SetPosition (2, 3);
+  SSD1306_DrawString ("ROOT: 0x", NORMAL);
+  sprintf (str, "%08x", (unsigned int) root_dir_starts);
+  SSD1306_DrawString (str, NORMAL);
+
+  FAT32_Read_Root_Dir (&FAT32);
+
   // EXIT
   // -------------------------------------------------------------------------------------
   return 0;

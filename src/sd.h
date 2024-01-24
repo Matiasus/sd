@@ -68,6 +68,9 @@
   #define SD_CMD58_CRC            0x00        // CRC
   
   #define SD_CMD1                 (0x40+1)    // SD_SEND_OP_COND (MMC) / Activate the card's initialization process
+  #define SD_CMD1_ARG             0x00000000  // 
+  #define SD_CMD1_CRC             0x00        // CRC
+
   #define SD_CMD9                 (0x40+9)    // SEND_CSD / asks the selected card to send its card-specific data (CSD)
   #define SD_CMD10                (0x40+10)   // SEND_CID / asks the selected card to send its card identification (CID)
   #define SD_CMD12                (0x40+12)   // STOP_TRANSMISSION / force the card to stop transmission in Mutliple Block Read Operation
@@ -81,10 +84,16 @@
   #define SD_CMD25                (0x40+25)   // WRITE_MULTIPLE_BLOCK
   #define SD_CMD59                (0x40+59)   // CRC_ON_OFF
 
+  #define SD_R1                   1
+  #define SD_R3                   5
+  #define SD_R7                   5
+
   #define SD_ATTEMPTS_R1          0x08
   #define SD_ATTEMPTS_CMD0        0xff
+  #define SD_ATTEMPTS_CMD1        0xff
   #define SD_ATTEMPTS_CMD8        0xff
   #define SD_ATTEMPTS_CMD55       0xff
+  #define SD_ATTEMPTS_CMD17       1563
 
   #define SD_R1_CARD_READY        0x00
   #define SD_R1_IDLE_STATE        0x01
@@ -98,11 +107,13 @@
   #define SD_CMD8_VOLT_27_36_V    0x01
   #define SD_CMD58_READY          0x80
   #define SD_CMD58_CCS            0x40
+
+  #define SD_SDHC_BLOCKLEN        512
   
   typedef struct SD {
-    uint8_t success;
-    uint8_t cmd8_voltage_accept;
-    uint8_t cmd58_sdhc;
+    uint8_t voltage;                          // 0 - rejected, 1 - accepted / CMD8
+    uint8_t sdhc;                             // 0 - unknown, 1 - SDSC, 2 - SDHC or SDXC / CMD58
+    uint8_t version;                          // 0 - unknown, 1 - SD Ver.2+ (Block Address), 2 - SD Ver.2+, 3 - SD Ver.1, 4 - MMC Ver.3
   } SD;
 
   /**
@@ -115,58 +126,36 @@
   uint8_t SD_Init (SD *);
 
   /**
+   * @brief   SD Card Read Data
+   *
+   * @param   uint32_t
+   * @param   uint8_t *
+   *
+   * @return  uint8_t
+   */
+  uint8_t SD_Read_Block (uint32_t, uint8_t *);
+
+  /**
    * @brief   SD Card Power Up Sequence
    *
    * @param   void
    *
    * @return  void
    */
-  void SD_PowerUp (void);
+  void SD_Power_Up (void);
 
   /**
-   * @brief   SD Card Power Up Sequence
+   * @brief   SD Send SD Command
    *
-   * @param   void
+   * @param   uint8_t command 
+   * @param   uint32_t argument
+   * @param   uint8_t crc
+   * @param   uint8_t * response
+   * @param   uint8_t n-times
    *
    * @return  uint8_t
    */
-  uint8_t SD_IdleState (void);
-
-  /**
-   * @brief   SD Send If Condition
-   *
-   * @param   uint8_t *
-   *
-   * @return  void
-   */
-  void SD_SendIfCondition (uint8_t *);
-
-  /**
-   * @brief   SD Send Application Command
-   *
-   * @param   void
-   *
-   * @return  uint8_t
-   */
-  uint8_t SD_SendAppCommand (void);
-
-  /**
-   * @brief   SD Send Op Condition
-   *
-   * @param   void
-   *
-   * @return  uint8_t
-   */
-  uint8_t SD_SendOpCondition (void);
-
-  /**
-   * @brief   SD Send Application Command
-   *
-   * @param   uint8_t *
-   *
-   * @return  void
-   */
-  void SD_ReadOCR (uint8_t * );
+  uint8_t SD_Send_CMDx (uint8_t, uint32_t, uint8_t, uint8_t *, uint8_t);
 
   /**
    * @brief   SD Card Response R1
@@ -175,25 +164,17 @@
    *
    * @return  uint8_t
    */
-  uint8_t SD_GetResponseR1 (void);
+  uint8_t SD_Get_Response_R1 (void);
 
   /**
-   * @brief   SD Card Response R3
+   * @brief   SD Card Response R1, R3, R7
    *
-   * @param   uint8_t * r
+   * @param   uint8_t * response
+   * @param   uint8_t n-times
    *
-   * @return  void
+   * @return  uint8_t
    */
-  void SD_GetResponseR3 (uint8_t *);
-
-  /**
-   * @brief   SD Card Response R7
-   *
-   * @param   uint8_t *
-   *
-   * @return  void
-   */
-  void SD_GetResponseR7 (uint8_t *);
+  uint8_t SD_Get_Response_Rn (uint8_t *, uint8_t);
 
   /**
    * @brief   SD Card Send Command
@@ -204,6 +185,6 @@
    *
    * @return  void
    */
-  void SD_SendCommand (uint8_t, uint32_t, uint8_t);
+  void SD_Send_Command (uint8_t, uint32_t, uint8_t);
 
 #endif
