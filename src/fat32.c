@@ -48,11 +48,11 @@ uint8_t FAT32_Init (void)
 /**
  * @brief   Read Master Boot Record
  *
- * @param   void
+ * @param   FAT32_t * FAT32
  *
  * @return  uint32_t
  */
-uint32_t FAT32_Master_Boot_Record (void)
+uint32_t FAT32_Read_Master_Boot_Record (FAT32_t * FAT32)
 {
   uint8_t buffer[512];
   uint32_t lba_begin;
@@ -77,31 +77,29 @@ uint32_t FAT32_Master_Boot_Record (void)
 
   // LBA Begin Address
   // ----------------------------------------------------------------
-  lba_begin = FAT32_Get_4Bytes_LE (MBR->Partition1.LBA_Begin);                // LBA begin address
+  FAT32->lba_begin = FAT32_Get_4Bytes_LE (MBR->Partition1.LBA_Begin);         // LBA begin address
 
-  return lba_begin;
+  return FAT32_SUCCESS;
 }
 
 /**
  * @brief   Read Master Boot Record
  *
- * @param   uint32_t
+ * @param   FAT32_t * FAT32
  *
  * @return  uint32_t
  */
-uint32_t FAT32_Boot_Sector (uint32_t lba_begin)
+uint32_t FAT32_Read_Boot_Sector (FAT32_t * FAT32)
 {
   uint8_t buffer[512];
   uint16_t reserved_sectors;
   uint32_t sector_per_fats;
   uint32_t root_dir_clus_no;
-  uint32_t fats_begin;
-  uint32_t data_begin;
-  uint32_t root_begin;
+
  
-  // Read Boot Sector with BIOS Parameter Block Parameter Bios
+  // Read Boot Sector with BIOS Parameter Block
   // ----------------------------------------------------------------
-  SD_Read_Block (lba_begin, buffer); // 2048*512 = 0x00100000
+  SD_Read_Block (FAT32->lba_begin, buffer);                                   // 2048 = 0x00000800
   BS_t * BS = (BS_t *) buffer;
 
   // Checking
@@ -122,21 +120,21 @@ uint32_t FAT32_Boot_Sector (uint32_t lba_begin)
   sector_per_fats = FAT32_Get_4Bytes_LE (BS->BigSectorsPerFAT);               // 0x000039d0 = 14800
   root_dir_clus_no = FAT32_Get_4Bytes_LE (BS->RootDirClusNo);                 // 0x00000002 = 2
 
-  fats_begin = lba_begin + reserved_sectors;                                  // 2048 + 32 = 2080
-  data_begin = fats_begin + (BS->NumberOfFATs * sector_per_fats);             // 2080 + (2 * 14800) = 31680
-  root_begin = data_begin + ((root_dir_clus_no - 2) * BS->SectorsPerCluster); // 31680 + ((2 - 2) * 32) = 31680
+  FAT32->fats_begin = lba_begin + reserved_sectors;                           // 2048 + 32 = 2080
+  FAT32->data_begin = fats_begin + (BS->NumberOfFATs * sector_per_fats);      // 2080 + (2 * 14800) = 31680
+  FAT32->root_begin = data_begin + ((root_dir_clus_no - 2) * BS->SectorsPerCluster); // 31680 + ((2 - 2) * 32) = 31680
   
-  return root_begin;
+  return FAT32_SUCCESS;
 }
 
 /**
  * @brief   Read Root Directory
  *
- * @param   uint32_t
+ * @param   FAT32_t * FAT32
  *
  * @return  uint32_t
  */
-uint32_t FAT32_Root_Directory (uint32_t root_dir_starts)
+uint32_t FAT32_Read_Root_Dir (FAT32_t * FAT32)
 {
   uint8_t buffer[512];
  
@@ -147,8 +145,8 @@ uint32_t FAT32_Root_Directory (uint32_t root_dir_starts)
   SSD1306_SetPosition (0, 4);
   for (uint16_t i=0; i<512; i=i+32) {
     DE_t * DE = (DE_t *) &buffer[i];
-    if ((DE->Name[0] != 0xe5) && 
-        (DE->Name[0] != 0x41)) {
+    if ((DE->Name[0] != FAT32_DE_UNUSED) && 
+        (DE->Attribute != FAT32_DE_LONG_NAME)) {
       for (uint8_t j=0; j<8; j++) {
         SSD1306_DrawChar (DE->Name[j], NORMAL);
       }
@@ -163,6 +161,17 @@ uint32_t FAT32_Root_Directory (uint32_t root_dir_starts)
  * PRIMITIVE / PRIVATE FUNCTIONS
  * --------------------------------------------------------------------------------------------+
  */
+
+/**
+ * @brief   Read Root Directory
+ *
+ * @param   uint32_t
+ *
+ * @return  uint32_t
+ */
+uint32_t FAT32_Show_name (uint32_t root_dir_starts)
+{
+}
 
 /**
  * @brief   Get 2 Bytes Little Endian
