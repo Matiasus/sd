@@ -43,7 +43,8 @@ uint8_t SD_Init (SD * sd)
   // ----------------------------------------------------------------
   SD_Power_Up ();
  
-  // Idle State - CMD0 
+  // Idle State - CMD0
+>>>>>>> refs/remotes/origin/main
   // ----------------------------------------------------------------
   attempt = 0;
   while (SD_Send_CMDx (SD_CMD0, SD_CMD0_ARG, SD_CMD0_CRC, r, SD_R1) != SD_R1_IDLE_STATE) {
@@ -94,7 +95,7 @@ uint8_t SD_Init (SD * sd)
     attempt = 0;
     do {
       SD_Send_CMDx (SD_CMD55, SD_CMD55_ARG, SD_CMD55_CRC, r, SD_R1);
-      if ((r[0] == SD_R1_CARD_READY) || 
+      if ((r[0] == SD_R1_CARD_READY) ||
           (r[0] == SD_R1_IDLE_STATE)) {
         SD_Send_CMDx (SD_ACMD41, 0x00000000, SD_ACMD41_CRC, r, SD_R1);
       }
@@ -115,7 +116,7 @@ uint8_t SD_Init (SD * sd)
       sd->version = 4;                                  // MMC Ver.3 Byte Address      
     }
   }
-
+  
   return SD_SUCCESS;
 }
 

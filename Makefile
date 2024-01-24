@@ -127,4 +127,3 @@ cleanall:
 	@echo "-----------------------------------------------------------------------"
 	rm -f $(OBJECTS) $(TARGET).hex $(TARGET).elf $(TARGET).map
 
-
