@@ -63,7 +63,13 @@
   #define PE_TYPECODE_BBT               0xFF
 
   #define BYTES_PER_SECTOR              0x0200          // 512 Bytes
-
+  
+  // DIRECTORY ENTRY
+  // --------------------------------------------------------------------------------------
+  #define FAT32_DE_UNUSED               0xE5            // the directory entry is free (no file or directory name in this entry)
+  #define FAT32_DE_END                  0x00            // there are no allocated directory entries after this one
+  #define FAT32_DE_LONG_NAME            0x0F
+  
   // Partition Entry PE
   // --------------------------------------------------------------------------------------
   // 16 Bytes
@@ -148,6 +154,12 @@
     uint8_t FirstClustLO[2];                             // first Cluster Low Bytes
     uint8_t FileSize[4];                                 // file size
   } __attribute__((packed)) DE_t;
+  
+  typedef struct FAT32_t {
+    uint32_t fats_begin;                                 //
+    uint32_t data_begin;                                 //
+    uint32_t root_begin;                                 //
+  } FAT32_t;
 
   /**
    * @brief   FAT32 Init
@@ -161,29 +173,29 @@
   /**
    * @brief   Read Master Boot Record
    *
-   * @param   void
+   * @param   FAT32_t * 
    *
    * @return  uint32_t
    */
-  uint32_t FAT32_Master_Boot_Record (void);
+  uint32_t FAT32_Read_Master_Boot_Record (FAT32_t * FAT32);
   
   /**
    * @brief   Read Boot Sector
    *
-   * @param   uint32_t
+   * @param   FAT32_t *
    *
    * @return  uint32_t
    */
-  uint32_t FAT32_Boot_Sector (uint32_t);
+  uint32_t FAT32_Read_Boot_Sector (FAT32_t * FAT32);
 
   /**
    * @brief   Read Root Directory
    *
-   * @param   uint32_t
+   * @param   FAT32_t *
    *
    * @return  uint32_t
    */
-  uint32_t FAT32_Root_Directory (uint32_t);
+  uint32_t FAT32_Read_Root_Dir (FAT32_t * FAT32);
 
   /**
    * --------------------------------------------------------------------------------------------+
