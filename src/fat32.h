@@ -156,6 +156,7 @@
   } __attribute__((packed)) DE_t;
   
   typedef struct FAT32_t {
+    uint32_t lba_begin;
     uint32_t fats_begin;                                 //
     uint32_t data_begin;                                 //
     uint32_t root_begin;                                 //

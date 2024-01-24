@@ -44,7 +44,6 @@ uint8_t SD_Init (SD * sd)
   SD_Power_Up ();
  
   // Idle State - CMD0
->>>>>>> refs/remotes/origin/main
   // ----------------------------------------------------------------
   attempt = 0;
   while (SD_Send_CMDx (SD_CMD0, SD_CMD0_ARG, SD_CMD0_CRC, r, SD_R1) != SD_R1_IDLE_STATE) {
