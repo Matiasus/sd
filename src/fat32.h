@@ -154,7 +154,21 @@
     uint8_t FirstClustLO[2];                             // first Cluster Low Bytes
     uint8_t FileSize[4];                                 // file size
   } __attribute__((packed)) DE_t;
-  
+
+  // Directory Entry Long File Name
+  // --------------------------------------------------------------------------------------
+  typedef struct LFN_t {
+    // --------
+    char Order;
+    char Name1[10];
+    char Attribute;
+    char Reserved;
+    char Checksum;
+    char Name2[12];
+    char Empty[2];
+    char Name3[4];
+  } __attribute__((packed)) LFN_t;
+
   typedef struct FAT32_t {
     uint32_t lba_begin;
     uint32_t fats_begin;                                 //
