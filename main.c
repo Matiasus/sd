@@ -31,8 +31,7 @@
  */
 int main (void)
 {
-  //char str[10];
-  
+  char str[10];
   FAT32_t FAT32 = {.lba_begin =0, .fats_begin = 0, .data_begin = 0, .root_begin = 0};
   
   // Init LCD SSD1306
@@ -42,33 +41,30 @@ int main (void)
   SSD1306_SetPosition (10, 0);
   SSD1306_DrawString ("FAT32 INTERFACING", NORMAL);
 
-  // Read MBR
+  // Init SD
   // ----------------------------------------------------------------
   if (FAT32_Init() == FAT32_ERROR) {
     SSD1306_SetPosition (20, 3);
     SSD1306_DrawString ("ERROR", NORMAL);
-    return 0;
+    return FAT32_ERROR;
   }
 
-  FAT32_Read_Master_Boot_Record (&FAT32);
-  FAT32_Read_Boot_Sector (&FAT32);
-  FAT32_Read_Root_Dir (&FAT32);
-
-  // Print
+  // Read Master Boot Record
   // ----------------------------------------------------------------
-  /*
-  SSD1306_SetPosition (2, 2);
-  SSD1306_DrawString ("LBA:  0x", NORMAL);
-  sprintf (str, "%08x", (unsigned int) FAT32.lba_begin);
-  SSD1306_DrawString (str, NORMAL);
+  FAT32_Read_Master_Boot_Record (&FAT32);
 
-  SSD1306_SetPosition (2, 3);
-  SSD1306_DrawString ("ROOT: 0x", NORMAL);
-  sprintf (str, "%08x", (unsigned int) FAT32.root_begin);
+  // Read Boot Sector
+  // ----------------------------------------------------------------
+  FAT32_Read_Boot_Sector (&FAT32);
+
+  // Rood Directory Number Of Files
+  // ---------------------------------------------------------------- 
+  SSD1306_SetPosition (0, 2);
+  sprintf (str, "%ld", FAT32_Root_Dir_Files (&FAT32));
+  SSD1306_DrawString ("Files: ", NORMAL);
   SSD1306_DrawString (str, NORMAL);
-  */
 
   // EXIT
-  // -------------------------------------------------------------------------------------
+  // ----------------------------------------------------------------
   return 0;
 }
