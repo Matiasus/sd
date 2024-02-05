@@ -50,9 +50,9 @@ uint8_t FAT32_Init (void)
  *
  * @param   FAT32_t * FAT32
  *
- * @return  uint32_t
+ * @return  uint8_t
  */
-uint32_t FAT32_Read_Master_Boot_Record (FAT32_t * FAT32)
+uint8_t FAT32_Read_Master_Boot_Record (FAT32_t * FAT32)
 {
   uint8_t buffer[512];
 
@@ -86,14 +86,14 @@ uint32_t FAT32_Read_Master_Boot_Record (FAT32_t * FAT32)
  *
  * @param   FAT32_t * FAT32
  *
- * @return  uint32_t
+ * @return  uint8_t
  */
-uint32_t FAT32_Read_Boot_Sector (FAT32_t * FAT32)
+uint8_t FAT32_Read_Boot_Sector (FAT32_t * FAT32)
 {
   uint8_t buffer[512];
   uint16_t reserved_sectors;
   uint32_t sector_per_fats;
-  uint32_t root_dir_clus_no;
+  uint32_t root_dir_clus;
 
   // Read Boot Sector with BIOS Parameter Block
   // ----------------------------------------------------------------
@@ -114,13 +114,13 @@ uint32_t FAT32_Read_Boot_Sector (FAT32_t * FAT32)
 
   // Calculation
   // ----------------------------------------------------------------
-  reserved_sectors = FAT32_Get_2Bytes_LE (BS->ReservedSectors);               // 0x0020 = 32
-  sector_per_fats = FAT32_Get_4Bytes_LE (BS->BigSectorsPerFAT);               // 0x000039d0 = 14800
-  root_dir_clus_no = FAT32_Get_4Bytes_LE (BS->RootDirClusNo);                 // 0x00000002 = 2
+  reserved_sectors = FAT32_Get_2Bytes_LE (BS->ReservedSectors);
+  sector_per_fats = FAT32_Get_4Bytes_LE (BS->BigSectorsPerFAT);
+  root_dir_clus = FAT32_Get_4Bytes_LE (BS->RootDirClusNo);
 
-  FAT32->fats_begin = FAT32->lba_begin + reserved_sectors;                                    // 2048 + 32 = 2080
-  FAT32->data_begin = FAT32->fats_begin + (BS->NumberOfFATs * sector_per_fats);               // 2080 + (2 * 14800) = 31680
-  FAT32->root_begin = FAT32->data_begin + ((root_dir_clus_no - 2) * BS->SectorsPerCluster);   // 31680 + ((2 - 2) * 32) = 31680
+  FAT32->fats_begin = FAT32->lba_begin + reserved_sectors;
+  FAT32->data_begin = FAT32->fats_begin + (BS->NumberOfFATs * sector_per_fats);
+  FAT32->root_begin = FAT32->data_begin + ((root_dir_clus - 2) * BS->SectorsPerCluster);
   
   return FAT32_SUCCESS;
 }
@@ -131,32 +131,55 @@ uint32_t FAT32_Read_Boot_Sector (FAT32_t * FAT32)
  * @param   FAT32_t * FAT32
  *
  * @return  uint32_t
- */
-uint32_t FAT32_Read_Root_Dir (FAT32_t * FAT32)
+ *  */
+uint32_t FAT32_Root_Dir_Files (FAT32_t * FAT32)
 {
-  char str[12];
-  uint8_t buffer[512];
-  uint16_t cluster;
- 
-  // Read Boot Sector with BIOS Parameter Block Parameter Bios
+  DE_t * DE;
+  uint32_t files = 0;
+  uint8_t buffer[BYTES_PER_SECTOR];
+
+  // Read Directory Entries
   // ----------------------------------------------------------------
   SD_Read_Block (FAT32->root_begin, buffer);
 
-  for (uint16_t i=0; i<128; i=i+32) {
-    DE_t * DE = (DE_t *) &buffer[i];
-    if ((DE->Name[0] != FAT32_DE_UNUSED) && 
-        (DE->Attribute != FAT32_DE_LONG_NAME)) {      
-      SSD1306_SetPosition (0, 2);
-      SSD1306_DrawString ((char *) DE->Name, NORMAL);
-      SSD1306_SetPosition (0, 3);
-      cluster = (((uint32_t) FAT32_Get_2Bytes_LE (DE->FirstClustHI)) << 16) | ((uint32_t) FAT32_Get_2Bytes_LE (DE->FirstClustLO));
-      sprintf (str, "0x%08lx", (unsigned long) cluster);
-      SSD1306_DrawString (str, NORMAL);
-      break;    
+  // Read Root Directory Entries
+  // ----------------------------------------------------------------
+  for (uint16_t i=0; i<BYTES_PER_SECTOR; i=i+32) {
+    DE = (DE_t *) &buffer[i];
+    if (DE->Name[0] == FAT32_DE_END) {      
+      break;
+    } else if (DE->Name[0] > 0x20 && DE->Name[0] != FAT32_DE_UNUSED) {
+      if ((DE->Name[0] >> 4) != 0x04) {
+        files++;
+      }
     }
   }
 
-  return FAT32_SUCCESS;
+  return files;
+}
+
+/**
+ * @brief   Read Next Cluster From FAT
+ *
+ * @param   FAT32_t * FAT32
+ * @param   uint32_t cluster number
+ *
+ * @return  uint32_t
+ */
+uint32_t FAT32_Next_Cluster (FAT32_t * FAT32, uint32_t sequel)
+{
+  uint8_t buffer[512];
+
+  uint32_t packet = sequel << 2;                                              // sequel * 4
+  uint32_t sector = FAT32->fats_begin + packet / BYTES_PER_SECTOR;            // fats_begin + next block for SD read
+  uint32_t offset = packet - (sector * BYTES_PER_SECTOR);                     // packet % 512
+
+  // Read Directory Entries
+  // ----------------------------------------------------------------
+  SD_Read_Block (sector, buffer);
+  packet = FAT32_Get_4Bytes_LE (&buffer[offset]);
+
+  return packet;
 }
 
 /**
