@@ -160,6 +160,7 @@
   } __attribute__((packed)) LFN_t;
   
   typedef struct FAT32_t {
+    uint8_t sectors_per_cluster;                         // sectors per cluster
     uint32_t lba_begin;
     uint32_t fats_begin;                                 //
     uint32_t data_begin;                                 //
@@ -210,7 +211,17 @@
    *
    * @return  uint32_t
    */
-  uint32_t FAT32_Next_Cluster (FAT32_t *, uint32_t);
+  uint32_t FAT32_FAT_Next_Cluster (FAT32_t *, uint32_t);
+
+  /**
+   * @brief   Get Address (Offset) Of 1st Sector Of Cluster Number
+   *
+   * @param   FAT32_t * FAT32
+   * @param   uint32_t cluster number
+   *
+   * @return  uint32_t
+   *  */
+  uint32_t FAT32_Get_1st_Sector_Of_Clus (FAT32_t *, uint32_t);
 
   /**
    * --------------------------------------------------------------------------------------------+
