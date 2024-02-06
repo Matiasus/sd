@@ -171,7 +171,8 @@ uint32_t FAT32_Root_Dir_Files (FAT32_t * FAT32)
 
     next_cluster = FAT32_FAT_Next_Cluster (FAT32, next_cluster);              // get next cluster
     next_cluster &= 0x0FFFFFFF;                                               // mask first nibble
-
+    sectors = FAT32->sectors_per_cluster;
+    
   } while (next_cluster < 0x0FFFFFF8);                                        // 0x?ffffff8 - 0x?fffffff = Last cluster in file (EOC)
 
   return files;
