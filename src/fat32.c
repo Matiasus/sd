@@ -130,6 +130,7 @@ uint8_t FAT32_Read_Boot_Sector (FAT32_t * FAT32)
   FAT32->data_begin = FAT32->fats_begin + (BS->NumberOfFATs * sector_per_fats);
   FAT32->root_begin = FAT32->data_begin + ((root_dir_clus - 2) * BS->SectorsPerCluster);
   FAT32->sectors_per_cluster = BS->SectorsPerCluster;
+  FAT32->root_dir_clus_num = root_dir_clus;
 
   return FAT32_SUCCESS;
 }
@@ -147,8 +148,9 @@ uint32_t FAT32_Root_Dir_Files (FAT32_t * FAT32)
   uint8_t sectors;
   uint8_t buffer[BYTES_PER_SECTOR];
 
+  uint32_t sector;
   uint32_t files = 0;
-  uint32_t cluster = FAT32->RootDirClusNo;                                    // next cluster of root directory
+  uint32_t cluster = FAT32->root_dir_clus_num;                                // next cluster of root directory
 
   do {
 
@@ -179,7 +181,7 @@ uint32_t FAT32_Root_Dir_Files (FAT32_t * FAT32)
     cluster = FAT32_FAT_Next_Cluster (FAT32, cluster);                        // get next cluster
     cluster &= 0x0FFFFFFF;                                                    // mask first nibble
 
-  } while (next_cluster < 0x0FFFFFF8);                                        // 0x?ffffff8 - 0x?fffffff = Last cluster in file (EOC)
+  } while (cluster < 0x0FFFFFF8);                                             // 0x?ffffff8 - 0x?fffffff = Last cluster in file (EOC)
 
   return files;
 }
@@ -219,6 +221,43 @@ uint32_t FAT32_FAT_Next_Cluster (FAT32_t * FAT32, uint32_t next_cluster)
 uint32_t FAT32_Get_1st_Sector_Of_Clus (FAT32_t * FAT32, uint32_t cluster)
 {
   return FAT32->data_begin + ((cluster - 2) * FAT32->sectors_per_cluster);
+}
+
+/**
+ * @brief   Get File
+ *
+ * @param   FAT32_t * FAT32
+ * @param   uint32_t file number
+ *
+ * @return  DE_t * 
+ *  */
+DE_t * FAT32_Get_File (FAT32_t * FAT32, uint32_t filenum)
+{
+  DE_t * DE;
+  uint8_t buffer[BYTES_PER_SECTOR];
+  uint32_t files = 0;
+
+  // Read Sector
+  // --------------------------------------------------------------
+  SD_Read_Block (FAT32->root_begin, buffer);
+
+  // Read Root Directory Entries
+  // --------------------------------------------------------------
+  for (uint16_t i=0; i<BYTES_PER_SECTOR; i=i+32) {
+    DE = (DE_t *) &buffer[i];
+    if (DE->Name[0] == FAT32_DE_END) {      
+      return DE;                                                              // end of files
+    } else if (DE->Name[0] != FAT32_DE_UNUSED) {                              // deleted files
+      if (((DE->Name[0] >> 4) != 0x04) &&                                     // end of long file name
+          (DE->Name[0] > 0x20)) {                                             // !!! except 0x05
+        if (++files == filenum) {
+          break;
+        }
+      }
+    }
+  }
+
+  return DE;
 }
 
 /**
