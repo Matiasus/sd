@@ -33,7 +33,7 @@ int main (void)
 {
   char str[10];
   DE_t * File;
-  uint8_t files;
+  uint32_t files;
   uint32_t cluster;
   FAT32_t FAT32 = {
     .root_dir_clus_num = 0, 
@@ -63,7 +63,7 @@ int main (void)
   // ----------------------------------------------------------------
   files = FAT32_Root_Dir_Files (&FAT32);
   SSD1306_SetPosition (0, 2);
-  sprintf (str, "%d", files);
+  sprintf (str, "%d", (int) files);
   SSD1306_DrawString ("SUMs: ", NORMAL);
   SSD1306_DrawString (str, NORMAL);
 
