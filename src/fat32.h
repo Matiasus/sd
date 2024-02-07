@@ -170,11 +170,11 @@
   /**
    * @brief   FAT32 Init
    *
-   * @param   void
+   * @param   FAT32_t *
    *
    * @return  uint8_t
    */
-  uint8_t FAT32_Init (void);
+  uint8_t FAT32_Init (FAT32_t *);
 
   /**
    * @brief   Read Master Boot Record
@@ -183,7 +183,7 @@
    *
    * @return  uint8_t
    */
-  uint8_t FAT32_Read_Master_Boot_Record (FAT32_t * FAT32);
+  uint8_t FAT32_Read_Master_Boot_Record (FAT32_t *);
   
   /**
    * @brief   Read Boot Sector
