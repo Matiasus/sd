@@ -161,6 +161,7 @@
   
   typedef struct FAT32_t {
     uint8_t sectors_per_cluster;                         // sectors per cluster
+    uint32_t root_dir_clus_num;
     uint32_t lba_begin;
     uint32_t fats_begin;                                 //
     uint32_t data_begin;                                 //
@@ -202,6 +203,16 @@
    * @return  DE_t *
    */
   uint32_t FAT32_Root_Dir_Files (FAT32_t *);
+
+  /**
+   * @brief   Get File
+   *
+   * @param   FAT32_t * FAT32
+   * @param   uint32_t file number
+   *
+   * @return  DE_t *
+   *  */
+  DE_t * FAT32_Get_File (FAT32_t *, uint32_t);
 
   /**
    * @brief   Read Next Cluster From FAT
