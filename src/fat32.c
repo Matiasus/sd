@@ -144,17 +144,16 @@ uint8_t FAT32_Read_Boot_Sector (FAT32_t * FAT32)
 uint32_t FAT32_Root_Dir_Files (FAT32_t * FAT32)
 {
   DE_t * DE;
+  uint8_t sectors;
   uint8_t buffer[BYTES_PER_SECTOR];
-  uint32_t cluster;
 
-  uint8_t sectors = FAT32->sectors_per_cluster;
   uint32_t files = 0;
-  uint32_t sector = FAT32->root_begin;                                        // 1st sector of cluster
-  uint32_t next_cluster = FAT32->RootDirClusNo;
+  uint32_t cluster = FAT32->RootDirClusNo;                                    // next cluster of root directory
 
   do {
 
-    sector = FAT32_Get_1st_Sector_Of_Clus (FAT32, next_cluster);              // 1st sector of cluster
+    sectors = FAT32->sectors_per_cluster;                                     // number of sectors in cluster
+    sector = FAT32_Get_1st_Sector_Of_Clus (FAT32, cluster);                   // 1st sector of cluster
 
     // Read Cluster
     // ----------------------------------------------------------------    
@@ -177,9 +176,8 @@ uint32_t FAT32_Root_Dir_Files (FAT32_t * FAT32)
       }
     }
 
-    next_cluster = FAT32_FAT_Next_Cluster (FAT32, next_cluster);              // get next cluster
-    next_cluster &= 0x0FFFFFFF;                                               // mask first nibble
-    sectors = FAT32->sectors_per_cluster;
+    cluster = FAT32_FAT_Next_Cluster (FAT32, cluster);                        // get next cluster
+    cluster &= 0x0FFFFFFF;                                                    // mask first nibble
 
   } while (next_cluster < 0x0FFFFFF8);                                        // 0x?ffffff8 - 0x?fffffff = Last cluster in file (EOC)
 
