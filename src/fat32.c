@@ -26,19 +26,27 @@
 /**
  * @brief   FAT32 Init
  *
- * @param   void
+ * @param   FAT32_t * FAT32 structure
  *
  * @return  uint8_t
  */
-uint8_t FAT32_Init (void)
+uint8_t FAT32_Init (FAT32_t * FAT32)
 {
-  // init SD structure
-  // -------------------------------------------------------------------------------------  
-  SD sd = { .voltage = 0, .sdhc = 0, .version = 0 };
-
-  // init SD Card
+  // SD Card Init
   // -------------------------------------------------------------------------------------
+  SD sd = { .voltage = 0, .sdhc = 0, .version = 0 };
   if (SD_Init (&sd) == SD_ERROR) {
+    return FAT32_ERROR;
+  }
+
+  // MBR - Read Master Boot Record
+  // ----------------------------------------------------------------
+  if (FAT32_ERROR == FAT32_Read_Master_Boot_Record (FAT32)) {
+    return FAT32_ERROR;
+  }
+  // BS - Read Boot Sector
+  // ----------------------------------------------------------------
+  if (FAT32_ERROR == FAT32_Read_Boot_Sector (FAT32)) {
     return FAT32_ERROR;
   }
 
@@ -150,12 +158,12 @@ uint32_t FAT32_Root_Dir_Files (FAT32_t * FAT32)
 
     // Read Cluster
     // ----------------------------------------------------------------    
-    while (sectors-- > 0) {
+    while (sectors--) {
       // Read Sector
-      // ----------------------------------------------------------------
+      // --------------------------------------------------------------
       SD_Read_Block (sector++, buffer);
       // Read Root Directory Entries
-      // ----------------------------------------------------------------
+      // --------------------------------------------------------------
       for (uint16_t i=0; i<BYTES_PER_SECTOR; i=i+32) {
         DE = (DE_t *) &buffer[i];
         if (DE->Name[0] == FAT32_DE_END) {      
@@ -172,7 +180,7 @@ uint32_t FAT32_Root_Dir_Files (FAT32_t * FAT32)
     next_cluster = FAT32_FAT_Next_Cluster (FAT32, next_cluster);              // get next cluster
     next_cluster &= 0x0FFFFFFF;                                               // mask first nibble
     sectors = FAT32->sectors_per_cluster;
-    
+
   } while (next_cluster < 0x0FFFFFF8);                                        // 0x?ffffff8 - 0x?fffffff = Last cluster in file (EOC)
 
   return files;
@@ -186,11 +194,11 @@ uint32_t FAT32_Root_Dir_Files (FAT32_t * FAT32)
  *
  * @return  uint32_t
  */
-uint32_t FAT32_FAT_Next_Cluster (FAT32_t * FAT32, uint32_t sequel)
+uint32_t FAT32_FAT_Next_Cluster (FAT32_t * FAT32, uint32_t next_cluster)
 {
   uint8_t buffer[512];
 
-  uint32_t packet = sequel << 2;                                              // sequel * 4
+  uint32_t packet = next_cluster << 2;                                        // sequel * 4
   uint32_t sector = FAT32->fats_begin + packet / BYTES_PER_SECTOR;            // fats_begin + next block for SD read
   uint32_t offset = packet - (sector * BYTES_PER_SECTOR);                     // packet % 512
 
@@ -214,7 +222,6 @@ uint32_t FAT32_Get_1st_Sector_Of_Clus (FAT32_t * FAT32, uint32_t cluster)
 {
   return FAT32->data_begin + ((cluster - 2) * FAT32->sectors_per_cluster);
 }
-
 
 /**
  * --------------------------------------------------------------------------------------------+
