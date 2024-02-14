@@ -126,11 +126,10 @@ uint8_t FAT32_Read_Boot_Sector (FAT32_t * FAT32)
   sector_per_fats = FAT32_Get_4Bytes_LE (BS->BigSectorsPerFAT);
   root_dir_clus = FAT32_Get_4Bytes_LE (BS->RootDirClusNo);
 
-  FAT32->fats_begin = FAT32->lba_begin + reserved_sectors;
-  FAT32->data_begin = FAT32->fats_begin + (BS->NumberOfFATs * sector_per_fats);
-  FAT32->root_begin = FAT32->data_begin + ((root_dir_clus - 2) * BS->SectorsPerCluster);
-  FAT32->sectors_per_cluster = BS->SectorsPerCluster;
   FAT32->root_dir_clus_num = root_dir_clus;
+  FAT32->sectors_per_cluster = BS->SectorsPerCluster;
+  FAT32->fat_area_begin = FAT32->lba_begin + reserved_sectors;
+  FAT32->data_area_begin = FAT32->fat_area_begin + (BS->NumberOfFATs * sector_per_fats);
 
   return FAT32_SUCCESS;
 }
@@ -190,24 +189,25 @@ uint32_t FAT32_Root_Dir_Files (FAT32_t * FAT32)
  * @brief   Read Next Cluster From FAT
  *
  * @param   FAT32_t * FAT32
- * @param   uint32_t cluster number
+ * @param   uint32_t cluster position in FAT
  *
  * @return  uint32_t
  */
-uint32_t FAT32_FAT_Next_Cluster (FAT32_t * FAT32, uint32_t next_cluster)
+uint32_t FAT32_FAT_Next_Cluster (FAT32_t * FAT32, uint32_t cluster_pos_in_FAT)
 {
   uint8_t buffer[512];
 
-  uint32_t packet = next_cluster << 2;                                        // sequel * 4
-  uint32_t sector = FAT32->fats_begin + packet / BYTES_PER_SECTOR;            // fats_begin + next block for SD read
+  uint32_t next_cluster;
+  uint32_t packet = cluster_pos_in_FAT << 2;                                  // sequel * 4
+  uint32_t sector = FAT32->fat_area_begin + packet / BYTES_PER_SECTOR;        // fats_begin + next block for SD read
   uint32_t offset = packet - (sector * BYTES_PER_SECTOR);                     // packet % 512
 
   // Read Directory Entries
   // ----------------------------------------------------------------
   SD_Read_Block (sector, buffer);
-  packet = FAT32_Get_4Bytes_LE (&buffer[offset]);
+  next_cluster = FAT32_Get_4Bytes_LE (&buffer[offset]);
 
-  return packet;
+  return next_cluster;
 }
 
 /**
@@ -220,18 +220,18 @@ uint32_t FAT32_FAT_Next_Cluster (FAT32_t * FAT32, uint32_t next_cluster)
  *  */
 uint32_t FAT32_Get_1st_Sector_Of_Clus (FAT32_t * FAT32, uint32_t cluster)
 {
-  return FAT32->data_begin + ((cluster - 2) * FAT32->sectors_per_cluster);
+  return (FAT32->data_area_begin + ((cluster - FAT32->root_dir_clus_num) * FAT32->sectors_per_cluster));
 }
 
 /**
- * @brief   Get File
+ * @brief   Get File Info from Root Directory
  *
  * @param   FAT32_t * FAT32
  * @param   uint32_t file number
  *
- * @return  DE_t * 
+ * @return  DE_t * => directory entry
  *  */
-DE_t * FAT32_Get_File (FAT32_t * FAT32, uint32_t filenum)
+DE_t * FAT32_Get_File_Info (FAT32_t * FAT32, uint32_t filenum)
 {
   DE_t * DE;
   uint8_t buffer[BYTES_PER_SECTOR];
@@ -258,6 +258,43 @@ DE_t * FAT32_Get_File (FAT32_t * FAT32, uint32_t filenum)
   }
 
   return DE;
+}
+
+/**
+ * @brief   Read Root Directory
+ *
+ * @param   FAT32_t * FAT32
+ * @param   uint32_t cluster
+ *
+ * @return  uint32_t
+ *  */
+uint32_t FAT32_Read_File (FAT32_t * FAT32, uint32_t cluster)
+{
+  DE_t * DE;
+  uint8_t sectors;
+  uint8_t buffer[BYTES_PER_SECTOR];
+
+  uint32_t sector;
+  uint32_t files = 0;
+  uint32_t cluster = FAT32->root_dir_clus_num;                                // next cluster of root directory
+
+  do {
+
+    sectors = FAT32->sectors_per_cluster;                                     // number of sectors in cluster
+    sector = FAT32_Get_1st_Sector_Of_Clus (FAT32, cluster);                   // 1st sector of cluster
+
+    // Read Cluster
+    // ----------------------------------------------------------------    
+    while (sectors--) {
+      SD_Read_Block (sector++, buffer);                                       // Read Sector
+    }
+
+    cluster = FAT32_FAT_Next_Cluster (FAT32, cluster);                        // get next cluster
+    cluster &= 0x0FFFFFFF;                                                    // mask first nibble
+
+  } while (cluster < 0x0FFFFFF8);                                             // 0x?ffffff8 - 0x?fffffff = Last cluster in file (EOC)
+
+  return files;
 }
 
 /**
