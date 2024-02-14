@@ -59,7 +59,7 @@ int main (void)
     return FAT32_ERROR;
   }
 
-  // Rood Directory Number Of Files
+  // Root Directory Number Of Files
   // ----------------------------------------------------------------
   files = FAT32_Root_Dir_Files (&FAT32);
   SSD1306_SetPosition (0, 2);
@@ -67,11 +67,11 @@ int main (void)
   SSD1306_DrawString ("SUMs: ", NORMAL);
   SSD1306_DrawString (str, NORMAL);
 
-  // Rood Directory Number Of Files
+  // Root Directory Show Files
   // ----------------------------------------------------------------
   for (uint32_t i = 1; i<7; i++) {
 
-    File = FAT32_Get_File (&FAT32, i);
+    File = FAT32_Get_File_Info (&FAT32, i);
     cluster = ((uint32_t) FAT32_Get_2Bytes_LE (File->FirstClustHI) << 16) | FAT32_Get_2Bytes_LE (File->FirstClustLO);
 
     SSD1306_SetPosition (0, 3);
@@ -79,15 +79,20 @@ int main (void)
     sprintf (str, "%d", (int) i);
     SSD1306_SetPosition (0, 4);
     SSD1306_DrawString ("NAME: ", NORMAL);
-    SSD1306_DrawString ((char *) File->Name, NORMAL);
+    SSD1306_DrawStringTo ((char *) File->Name, 8, NORMAL);
     SSD1306_SetPosition (0, 5);
     SSD1306_DrawString ("CLUS: ", NORMAL);
     sprintf (str, "0x%08x", (unsigned int) cluster);
     SSD1306_DrawString (str, NORMAL);
     
     _delay_ms (2000);
-    //SSD1306_ClearScreen ();
   }
+  
+  // Read File
+  // ----------------------------------------------------------------  
+  File = FAT32_Get_File_Info (&FAT32, 1);
+  cluster = ((uint32_t) FAT32_Get_2Bytes_LE (File->FirstClustHI) << 16) | FAT32_Get_2Bytes_LE (File->FirstClustLO);  
+  FAT32_Read_File (&FAT32, cluster);
 
   // EXIT
   // ----------------------------------------------------------------
