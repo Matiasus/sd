@@ -163,9 +163,8 @@
     uint8_t sectors_per_cluster;                         // sectors per cluster
     uint32_t root_dir_clus_num;
     uint32_t lba_begin;
-    uint32_t fats_begin;                                 //
-    uint32_t data_begin;                                 //
-    uint32_t root_begin;                                 //
+    uint32_t fat_area_begin;                             //
+    uint32_t data_area_begin;                            //
   } FAT32_t;
 
   /**
@@ -205,14 +204,24 @@
   uint32_t FAT32_Root_Dir_Files (FAT32_t *);
 
   /**
-   * @brief   Get File
+   * @brief   Get File Info from Root Directory
    *
    * @param   FAT32_t * FAT32
    * @param   uint32_t file number
    *
    * @return  DE_t *
    *  */
-  DE_t * FAT32_Get_File (FAT32_t *, uint32_t);
+  DE_t * FAT32_Get_File_Info (FAT32_t *, uint32_t);
+  
+  /**
+   * @brief   Read Root Directory
+   *
+   * @param   FAT32_t * FAT32
+   * @param   uint32_t cluster
+   *
+   * @return  uint32_t
+   *  */
+  uint32_t FAT32_Read_File (FAT32_t *, uint32_t);
 
   /**
    * @brief   Read Next Cluster From FAT
