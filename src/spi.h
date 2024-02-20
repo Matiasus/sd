@@ -42,10 +42,6 @@
 
   #endif
 
-  // macros
-  #define CS_ENABLE()         SPI_PORT &= ~(1 << SPI_SS)
-  #define CS_DISABLE()        SPI_PORT |= (1 << SPI_SS)
-
   // SPI init definitions
   #define SPI_MASTER          0x10
   #define SPI_SLAVE           0x00
@@ -60,15 +56,28 @@
   #define SPI_FOSC_DIV_64     0x02
   #define SPI_FOSC_DIV_128    0x03
 
+  // macros
+  #define CS_ENABLE()         SPI_PORT &= ~(1 << SPI_SS)
+  #define CS_DISABLE()        SPI_PORT |= (1 << SPI_SS)
+
   /**
    * @desc    SPI Init
    *
-   * @param   uint8_t
-   * @param   uint8_t
+   * @param   uint8_t settings
+   * @param   uint8_t 2x speed
    *
    * @return  void
    */
   void SPI_Init (uint8_t, uint8_t);
+
+  /**
+   * @desc    SPI Enable
+   *
+   * @param   void
+   *
+   * @return  void
+   */
+  void SPI_Enable (void);
 
   /**
    * @desc    SPI Write Byte

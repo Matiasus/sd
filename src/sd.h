@@ -24,11 +24,11 @@
 
   // INCLUDE libraries
   // ------------------------------------------------------------------
+  #include <stdio.h>
   #include <avr/io.h>
   #include <util/delay.h>
   #include "spi.h"
   #include "lcd/ssd1306.h"
-  #include <stdio.h>
 
   // RETURN
   // ------------------------------------------------------------------
@@ -44,6 +44,10 @@
   #define SD_CMD                  SPI_MOSI    // CMD
   #define SD_DAT0                 SPI_MISO    // DAT0
   #define SD_DAT3                 SPI_SS      // CS/DAT3
+
+  #define SD_DDR_CS               DDRB
+  #define SD_PORT_CS              PORTB
+  #define SD_CS                   1
 
   // SD CARD COMMAND TABLE
   // ------------------------------------------------------------------

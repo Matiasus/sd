@@ -21,6 +21,8 @@
 
 // INCLUDE libraries
 #include "src/fat32.h"
+#include "src/vs1053/vs1053.h"
+#include "src/vs1053/vs1053_hello.h"
 
 /**
  * @desc    Main function
@@ -31,44 +33,73 @@
  */
 int main (void)
 {
-  //char str[10];
-  
-  FAT32_t FAT32 = {.lba_begin =0, .fats_begin = 0, .data_begin = 0, .root_begin = 0};
-  
+  char str[10];
+  uint16_t data;
+  uint32_t files;
+  FAT32_t FAT32 = {
+    .root_dir_clus_num = 0, 
+    .sectors_per_cluster = 0, 
+    .lba_begin = 0, 
+    .fat_area_begin = 0, 
+    .data_area_begin = 0, 
+  };
+
   // Init LCD SSD1306
-  // -------------------------------------------------------------------------------------
+  // ----------------------------------------------------------------
   SSD1306_Init (SSD1306_ADDR);
   SSD1306_ClearScreen ();
-  SSD1306_SetPosition (10, 0);
-  SSD1306_DrawString ("FAT32 INTERFACING", NORMAL);
+  SSD1306_SetPosition (7, 0);
+  SSD1306_DrawString ("MP3 SD-FAT32 PLAYER", NORMAL);
 
-  // Read MBR
+  // VS1053 Init
   // ----------------------------------------------------------------
-  if (FAT32_Init() == FAT32_ERROR) {
-    SSD1306_SetPosition (20, 3);
-    SSD1306_DrawString ("ERROR", NORMAL);
-    return 0;
+  VS1053_Init ();
+
+  // VS1053 Memory Test
+  // ----------------------------------------------------------------
+  SSD1306_SetPosition (1, 3);
+  SSD1306_DrawString ("CODEC", NORMAL);
+  SSD1306_SetPosition (103, 3);
+  data = VS1053_TestMemory ();   
+  if (data != VS1053_MEMTEST_OK) {
+    SSD1306_DrawString ("[ER]", NORMAL);
+    return FAT32_ERROR;
   }
-
-  FAT32_Read_Master_Boot_Record (&FAT32);
-  FAT32_Read_Boot_Sector (&FAT32);
-  FAT32_Read_Root_Dir (&FAT32);
-
-  // Print
+  VS1053_TestSine (VS10XX_FREQ_1kHz);                             // sine test 1kHz
+  //VS1053_TestSine (VS10XX_FREQ_5kHz);                             // sine test 5kHz
+  //VS1053_TestSample (HelloMP3, sizeof(HelloMP3)-1);               // say Hello
+  SSD1306_DrawString ("[OK]", NORMAL);
+ 
+  // Init SD
   // ----------------------------------------------------------------
-  /*
-  SSD1306_SetPosition (2, 2);
-  SSD1306_DrawString ("LBA:  0x", NORMAL);
-  sprintf (str, "%08x", (unsigned int) FAT32.lba_begin);
+  SSD1306_SetPosition (1, 4);
+  SSD1306_DrawString ("FAT32", NORMAL);
+  SSD1306_SetPosition (103, 4);
+  if (FAT32_Init(&FAT32) == FAT32_ERROR) {
+    SSD1306_DrawString ("[ER]", NORMAL);
+    return FAT32_ERROR;
+  }
+  SSD1306_DrawString ("[OK]", NORMAL);
+
+  // Root Directory Number Of Files
+  // ----------------------------------------------------------------
+  files = FAT32_Root_Dir_Files (&FAT32);
+  SSD1306_SetPosition (1, 5);
+  (files > 10) ? (sprintf (str, "[%d]", (int) files)) : (sprintf (str, "[ %d]", (int) files));
+  SSD1306_DrawString ("FILES", NORMAL);
+  SSD1306_SetPosition (103, 5);
   SSD1306_DrawString (str, NORMAL);
 
-  SSD1306_SetPosition (2, 3);
-  SSD1306_DrawString ("ROOT: 0x", NORMAL);
-  sprintf (str, "%08x", (unsigned int) FAT32.root_begin);
-  SSD1306_DrawString (str, NORMAL);
-  */
+  // Read File
+  // ----------------------------------------------------------------
+  SSD1306_SetPosition (1, 6);
+  SSD1306_DrawString ("PLAY", NORMAL);
+  _delay_ms (1000);
+  VS1053_Play_Song_Test (&FAT32, 1);
+  SSD1306_SetPosition (103, 6);
+  SSD1306_DrawString ("[OK]", NORMAL);
 
   // EXIT
-  // -------------------------------------------------------------------------------------
+  // ----------------------------------------------------------------
   return 0;
 }

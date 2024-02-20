@@ -25,23 +25,38 @@
 /**
  * @desc    SPI Init
  *
- * @param   uint8_t
- * @param   uint8_t
- *
+ * @param   uint8_t settings
+ * @param   uint8_t double speed
+ * 
  * @return  void
  */
-void SPI_Init (uint8_t cs, uint8_t settings)
+void SPI_Init (uint8_t settings, uint8_t double_speed)
 {
   // SPI PORT Init
   // ----------------------------------------------------------------
-  SPI_DDR |= (1 << cs) | (1 << SPI_MOSI) | (1 << SPI_SCK);
+  SPI_DDR |= (1 << SPI_MOSI) | (1 << SPI_SCK) | (1 << SPI_SS);
   SPI_DDR &= ~(1 << SPI_MISO);
   SPI_PORT |= (1 << SPI_MISO);
 
+  // Doble Speed ?
+  // ----------------------------------------------------------------
+  (double_speed == 1) ? (SPI_SPSR |= (1 << SPI2X)) : (SPI_SPSR &= ~(1 << SPI2X));
+  
   // SPI init
   // ----------------------------------------------------------------
-  SPI_SPCR = settings | (1 << SPE);
-  SPI_SPSR &= ~(1 << SPI2X);
+  SPI_SPCR = settings;
+}
+
+/**
+ * @desc    SPI Enable
+ *
+ * @param   void
+ *
+ * @return  void
+ */
+void SPI_Enable (void)
+{
+  SPI_SPCR |= (1 << SPE);
 }
 
 /**

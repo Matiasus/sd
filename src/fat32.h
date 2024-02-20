@@ -100,33 +100,27 @@
   // The first sector (512 bytes) of a FAT filesystem is the boot sector. 
   // In Unix-like terminology this would be called the superblock. It contains some general information.
   typedef struct BS_t {
-    // 16 Bytes
-    // ------------------------------------------------------------------------------------ 
     uint8_t Jump[3];                                    // Boot strap short or near jump
     uint8_t OEM_Identifier[8];                          // Name - can be used to special case partition manager volumes
     uint8_t BytesPerSector[2];                          // bytes per logical sector
     uint8_t SectorsPerCluster;                          // sectors/cluster
     uint8_t ReservedSectors[2];                         // reserved sectors
-    // 16 Bytes
-    // ------------------------------------------------------------------------------------    
+    // --------
     uint8_t NumberOfFATs;                               // number of FATs
     uint8_t RootEntries[2];                             // root directory entries, 0 for FAT32, number of root directory entries 
-    uint8_t NumberOfSectors[2];                         // number of sectors, if this value is 0, it means there are more than 65535 sectors in the volume, 
-                                                        // and the actual count is stored in the BigNumberOfSectors
+    uint8_t NumberOfSectors[2];                         // number of sectors, 0 for FAT32, actual count is stored in the BigNumberOfSectors
     uint8_t MediaDescriptor;                            // media code
     uint8_t SectorsPerFAT[2];                           // sectors/FAT, 0 for FAT32
     uint8_t SectorsPerHead[2];                          // sectors per track
     uint8_t HeadsPerCylinder[2];                        // number of heads
     uint8_t HiddenSectors[4];                           // hidden sectors (unused)
-    // 16 Bytes
-    // ------------------------------------------------------------------------------------    
+    // --------
     uint8_t BigNumberOfSectors[4];                      // number of sectors (if NumberOfSectors == 0)
     uint8_t BigSectorsPerFAT[4];                        // sectors/FAT
     uint8_t ExtFlags[2];                                // bit 8: fat mirroring, low 4: active fat
     uint8_t FSVersion[2];                               // major, minor filesystem version
     uint8_t RootDirClusNo[4];                           // first cluster in root directory
-    // Rest Bytes
-    // ------------------------------------------------------------------------------------    
+    // ---------- 
     uint8_t FSInfoSector[2];                            // filesystem info sector
     uint8_t BackupBootSector[2];                        // backup boot sector
     uint8_t Reserved[12];                               // Unused
@@ -134,18 +128,15 @@
     uint8_t Signature[2];                               // offset 0x1FE - signature => must be 0xAA55
   } __attribute__((packed)) BS_t;
 
-  // Directory Table DT
+  // Directory Entry DE
   // --------------------------------------------------------------------------------------
   typedef struct DE_t {
-    // 16 Bytes
-    // ------------------------------------------------------------------------------------
     uint8_t Name[8];                                     // 
     uint8_t Extension[3];                                // 
     uint8_t Attribute;                                   // 
     uint8_t Empty[2];                                    //
     uint8_t CreateTime[2];                               // bits: 0-4 seconds/2, 5-10 minutes, 11-15 hours
-    // 16 Bytes
-    // ------------------------------------------------------------------------------------    
+    // --------
     uint8_t CreateDate[2];                               // bits: 0-4 day, 5-10 month, 11-15 year from 1980
     uint8_t LastAccessDate[2];                           // bits: 0-4 day, 5-10 month, 11-15 year from 1980
     uint8_t FirstClustHI[2];                             // first Cluster High Bytes
@@ -154,49 +145,93 @@
     uint8_t FirstClustLO[2];                             // first Cluster Low Bytes
     uint8_t FileSize[4];                                 // file size
   } __attribute__((packed)) DE_t;
+
+  // Directory Entry Long File Name
+  // --------------------------------------------------------------------------------------
+  typedef struct LFN_t {
+    char Order;
+    char Name1[10];
+    char Attribute;
+    char Reserved;
+    char Checksum;
+    char Name2[12];
+    char Empty[2];
+    char Name3[4];
+  } __attribute__((packed)) LFN_t;
   
   typedef struct FAT32_t {
+    uint8_t sectors_per_cluster;                         // sectors per cluster
+    uint32_t root_dir_clus_num;
     uint32_t lba_begin;
-    uint32_t fats_begin;                                 //
-    uint32_t data_begin;                                 //
-    uint32_t root_begin;                                 //
+    uint32_t fat_area_begin;                             //
+    uint32_t data_area_begin;                            //
   } FAT32_t;
 
   /**
    * @brief   FAT32 Init
    *
-   * @param   void
+   * @param   FAT32_t *
    *
    * @return  uint8_t
    */
-  uint8_t FAT32_Init (void);
+  uint8_t FAT32_Init (FAT32_t *);
 
   /**
    * @brief   Read Master Boot Record
    *
    * @param   FAT32_t * 
    *
-   * @return  uint32_t
+   * @return  uint8_t
    */
-  uint32_t FAT32_Read_Master_Boot_Record (FAT32_t * FAT32);
+  uint8_t FAT32_Read_Master_Boot_Record (FAT32_t *);
   
   /**
    * @brief   Read Boot Sector
    *
    * @param   FAT32_t *
    *
-   * @return  uint32_t
+   * @return  uint8_t
    */
-  uint32_t FAT32_Read_Boot_Sector (FAT32_t * FAT32);
+  uint8_t FAT32_Read_Boot_Sector (FAT32_t *);
 
   /**
    * @brief   Read Root Directory
    *
    * @param   FAT32_t *
    *
+   * @return  DE_t *
+   */
+  uint32_t FAT32_Root_Dir_Files (FAT32_t *);
+
+  /**
+   * @brief   Get File Info from Root Directory
+   *
+   * @param   FAT32_t * FAT32
+   * @param   uint32_t file number
+   *
+   * @return  DE_t *
+   *  */
+  DE_t * FAT32_Get_File_Info (FAT32_t *, uint32_t);
+
+  /**
+   * @brief   Read Next Cluster From FAT
+   *
+   * @param   FAT32_t * FAT32
+   * @param   uint32_t cluster number
+   *
    * @return  uint32_t
    */
-  uint32_t FAT32_Read_Root_Dir (FAT32_t * FAT32);
+  uint32_t FAT32_FAT_Next_Cluster (FAT32_t *, uint32_t);
+
+  /**
+   * @brief   Get Address (Offset) Of 1st Sector Of Cluster Number
+   *
+   * @param   FAT32_t * FAT32
+   * @param   uint32_t cluster number
+   *
+   * @return  uint32_t
+   *  */
+  uint32_t FAT32_Get_1st_Sector_Of_Clus (FAT32_t *, uint32_t);
 
   /**
    * --------------------------------------------------------------------------------------------+
