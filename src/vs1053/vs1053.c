@@ -11,7 +11,7 @@
  * @version     1.0
  * @test        AVR Atmega328p
  *
- * @depend      vs1053.h, vs1053_info.h, fat32.h
+ * @depend      vs1053.h, vs1053_info.h
  * --------------------------------------------------------------------------------------+
  * @interface   SPI connected through 7 pins
  * @pins        5V, DGND, MOSI, DREQ,  XCS
@@ -25,6 +25,7 @@
  */
 
 // INCLUDE libraries
+#include "../fat32.h"
 #include "vs1053.h"
 #include "vs1053_info.h"
 
@@ -229,8 +230,8 @@ void VS1053_TestSine (uint8_t n)
   uint8_t sine_activate[] = {0x53, 0xEF, 0x6E, n, 0, 0, 0, 0};
   const uint8_t sine_deactivate[] = {0x45, 0x78, 0x69, 0x74, 0, 0, 0, 0};
 
-  // hardware reset
-  // ----------------------------------------------------------------------------------
+  // hardware reset 
+  // ----------------------------------------------------------------------------------  
   VS1053_Reset ();                                      // hardware reset
 
   // test mode setting
@@ -262,17 +263,17 @@ uint16_t VS1053_TestMemory (void)
   uint16_t sci_mode;
   const uint8_t mem_sequence[] = {0x4D, 0xEA, 0x6D, 0x54, 0, 0, 0, 0};
 
-  // hardware reset
-  // ----------------------------------------------------------------------------------
-  //VS1053_Reset ();                                      // hardware reset
+  // hardware reset 
+  // ----------------------------------------------------------------------------------  
+  //VS1053_Reset ();                                      // hardware reset  
 
   // test mode setting
-  // ----------------------------------------------------------------------------------
+  // ----------------------------------------------------------------------------------  
   sci_mode = VS1053_ReadSci (SCI_MODE);                 // read MODE register
   VS1053_WriteSci (SCI_MODE, sci_mode | SM_TESTS);      // SM_SDINEW | SM_TESTS
 
   // test memory sequence
-  // ----------------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------------- 
   VS1053_WriteSdi (mem_sequence, 8);                    // memory test sequence
   _delay_ms (300);                                      // wait for 1100000 clock cycles
   data = VS1053_ReadSci (SCI_HDAT0);                    // result read from the SCI reg SCI_HDAT0
@@ -294,22 +295,129 @@ uint16_t VS1053_TestSample (const char * sample, uint16_t n)
 {
   uint16_t i = 0;
 
-  // hardware reset
-  // ----------------------------------------------------------------------------------
-  //VS1053_Reset ();                                      // hardware reset
+  // hardware reset 
+  // ----------------------------------------------------------------------------------  
+  //VS1053_Reset ();                                      // hardware reset    
 
   while (i < n) {
-    while (!(VS1053_PORT_DREQ & (1 << VS1053_DREQ))) {  // DREQ wait
+    while (!(VS1053_PORT_DREQ & (1 << VS1053_DREQ))) {       // DREQ wait
       VS1053_DeactivateData ();                         // set xDCS
     }
     VS1053_ActivateData ();                             // clear xDCS
     SPI_Transfer (pgm_read_byte(&sample[i++]));         // send data
   }
   _delay_ms (100);
-
+  
   // Cancel playback
   // ----------------------------------------------------------------------------------
   return VS1053_PlayCancel ();
+}
+
+/**
+ * @brief   Send buffer to codec
+ *
+ * @param   uint8_t * - buffer
+ * @param   uint16_t - how many times
+ *
+ * @return  void
+ */
+void VS1053_Send_Buffer (uint8_t * buffer, uint16_t n)
+{
+  uint16_t i = 0;
+
+  while (i < n) {
+    while (!(VS1053_PORT_DREQ & (1 << VS1053_DREQ))) {  // DREQ wait
+      VS1053_DeactivateData ();                         // set xDCS
+    }
+    VS1053_ActivateData ();                             // clear xDCS
+    SPI_Transfer (buffer[i++]);                         // send data
+  }
+}
+
+/**
+ * @brief   Playing song according to order file number
+ *
+ * @param   FAT32_t * - FAT32 structure
+ * @param   uint16_t - which file in order of root directory
+ *
+ * @return  void
+ */
+void VS1053_Play_Song (FAT32_t * FAT32, uint16_t filenum)
+{
+  uint8_t sectors = FAT32->sectors_per_cluster;
+  uint8_t buffer[BYTES_PER_SECTOR];
+  uint32_t sector;
+
+  DE_t * File = FAT32_Get_File_Info (FAT32, (uint32_t) filenum);
+  uint32_t cluster = ((uint32_t) FAT32_Get_2Bytes_LE (File->FirstClustHI) << 16) | FAT32_Get_2Bytes_LE (File->FirstClustLO);
+
+  // Reset
+  // ----------------------------------------------------------------------------------
+  //VS1053_Reset ();                                      // hardware reset
+  VS1053_SoftReset ();                                  // software reset
+
+  do {
+
+    sector = FAT32_Get_1st_Sector_Of_Clus (FAT32, cluster);
+
+    // Read Cluster
+    // --------------------------------------------------------------------------------
+    while (sectors--) {
+      SD_Read_Block (sector++, buffer);                 // Read Sector
+      VS1053_Send_Buffer (buffer, BYTES_PER_SECTOR);    // send buffer to codec
+    }
+
+    cluster = FAT32_FAT_Next_Cluster (FAT32, cluster);  // get next cluster
+    cluster &= 0x0FFFFFFF;                              // mask first nibble
+
+  } while (cluster < 0x0FFFFFF8);                       // 0x?ffffff8 - 0x?fffffff = Last cluster in file (EOC)
+}
+
+/**
+ * @brief   Testing
+ *
+ * @param   FAT32_t * - FAT32 structure
+ * @param   uint16_t - which file in order of root directory
+ *
+ * @return  void
+ */
+void VS1053_Play_Song_Test (FAT32_t * FAT32, uint16_t filenum)
+{
+  char str[10];
+  uint8_t sectors = FAT32->sectors_per_cluster;
+  uint8_t buffer[BYTES_PER_SECTOR];
+  uint32_t sector;
+
+  DE_t * File = FAT32_Get_File_Info (FAT32, (uint32_t) filenum);
+  uint32_t cluster = ((uint32_t) FAT32_Get_2Bytes_LE (File->FirstClustHI) << 16) | FAT32_Get_2Bytes_LE (File->FirstClustLO);
+
+  SSD1306_ClearScreen ();
+  sprintf (str, "%08x ", (unsigned int) cluster);
+  SSD1306_DrawString (str, NORMAL);
+
+  do {
+
+    sector = FAT32_Get_1st_Sector_Of_Clus (FAT32, cluster);
+/*
+    // Read Cluster
+    // --------------------------------------------------------------------------------
+    while (sectors--) {
+      SD_Read_Block (sector++, buffer);                 // Read Sector
+
+      for (uint16_t i=0; i<512; i++) {
+        sprintf (str, "%02x ", (unsigned int) buffer[i]);
+        SSD1306_DrawString (str, NORMAL);
+      }
+    }
+*/
+    cluster = FAT32_FAT_Next_Cluster (FAT32, cluster);  // get next cluster
+    sprintf (str, "%08x ", (unsigned int) cluster);
+    SSD1306_DrawString (str, NORMAL);
+
+    cluster &= 0x0FFFFFFF;                              // mask first nibble
+
+  } while (cluster < 0x0FFFFFF8);                       // 0x?ffffff8 - 0x?fffffff = Last cluster in file (EOC)
+
 }
 
 /**
@@ -335,8 +443,8 @@ void VS1053_Init (void)
   VS1053_PORT_DREQ |= (1 << VS1053_DREQ);               // DATA REQUEST pullup activate
 
   SPI_Init (SPI_MASTER |                                // Slow Speed Init
-            SPI_MODE_0 |
-            SPI_MSB_FIRST |
+            SPI_MODE_0 | 
+            SPI_MSB_FIRST | 
             SPI_FOSC_DIV_128, 0);                       // f = fclk/128 = 125 kHz
   SPI_Enable ();
 
@@ -413,8 +521,8 @@ void VS1053_Reset (void)
   //SPI_FastSpeedInit ();                                 // f = fclk/16 * 2 = 1MHz
 
   SPI_Init (SPI_MASTER |                                // Fast Speed Init
-            SPI_MODE_0 |
-            SPI_MSB_FIRST |
+            SPI_MODE_0 | 
+            SPI_MSB_FIRST | 
             SPI_FOSC_DIV_16, 1);                        // f = fclk/16 = 1 MHz
   SPI_Enable ();
 }
@@ -445,69 +553,6 @@ void VS1053_SoftReset (void)
 }
 
 /**
- * @brief   Playback Cancel
- *
- * @param   void
- *
- * @return  uint8_t
- */
-uint16_t VS1053_PlayCancel (void)
-{
-  uint8_t i = 0;
-  uint8_t n = 64;
-  uint8_t endbyte;
-
-  // read extra parameter - endFillByte
-  // ----------------------------------------------------------------------------------
-  VS1053_WriteSci (SCI_WRAMADDR, VS10XX_ADDR_ENDBYTE);
-  endbyte = (uint8_t) VS1053_ReadSci (SCI_WRAM) & 0xff;
-
-  // send at least 2052 bytes of endFillByte
-  // ----------------------------------------------------------------------------------
-  VS1053_WriteSdiByte (endbyte, 2052);
-  //_delay_ms (10);                                       // according to BALDRAM
-
-  // set SCI_MODE bit SM_CANCEL
-  // ----------------------------------------------------------------------------------
-  VS1053_WriteSci (SCI_MODE, SM_SDINEW | SM_CANCEL);
-
-  // send at least 32 bytes of endFillByte, max 2048 bytes then read SCI_MODE.
-  // If SM_CANCEL is still set, send next 32 bytes of endfillbyte
-  // If SM_CANCEL hasn't cleared after sending 2048 bytes, do a software reset
-  // ----------------------------------------------------------------------------------
-  VS1053_ActivateData ();                               // clear xDCS
-  while (n--) {
-    VS1053_DreqWait ();                                 // wait until DREQ is high
-    for (i = 0; i < 32; i++) {                          // send data
-      SPI_Transfer (endbyte);
-    }
-    if (!(VS1053_ReadSci (SCI_MODE) && SM_CANCEL)) {    // bit SM_CANCEL is null?
-      VS1053_DeactivateData ();                         // set xDCS
-      return VS1053_ReadSci (SCI_HDAT0);                // exit
-    }
-    _delay_ms (10);                                     // according to BALDRAM
-  }
-  VS1053_DeactivateData ();                             // set xDCS
-  VS1053_SoftReset ();                                  // software reset required
-
-  return VS1053_ReadSci (SCI_HDAT0);                    // exit
-}
-
-/**
- * @brief   Set volume
- *
- * @param   uint8_t lef channel
- * @param   uint8_t right channel
- *
- * @return  void
- */
-void VS1053_SetVolume (uint8_t left, uint8_t right)
-{
-  uint16_t volume = (left << 8) | right;                // set volume integer
-  VS1053_WriteSci (SCI_VOL, volume);                    // send command
-}
-
-/**
  * @brief   Get Version
  *
  * @param   void
@@ -529,61 +574,64 @@ char * VS1053_GetVersion (void)
 }
 
 /**
- * @brief   Send buffer to codec
+ * @brief   Playback Cancel
  *
- * @param   uint8_t * - buffer
- * @param   uint16_t - how many times
+ * @param   void
  *
- * @return  void
+ * @return  uint8_t
  */
-void VS1053_Send_Buffer (uint8_t * buffer, uint16_t n)
+uint16_t VS1053_PlayCancel (void)
 {
-  uint16_t i = 0;
+  uint8_t i = 0;
+  uint8_t n = 64;
+  uint8_t endbyte;
 
-  while (i < n) {
-    while (!(VS1053_PORT_DREQ & (1 << VS1053_DREQ))) {  // DREQ wait
-      VS1053_DeactivateData ();                         // set xDCS
+  // read extra parameter - endFillByte
+  // ----------------------------------------------------------------------------------
+  VS1053_WriteSci (SCI_WRAMADDR, VS10XX_ADDR_ENDBYTE);
+  endbyte = (uint8_t) VS1053_ReadSci (SCI_WRAM) & 0xff;
+
+  // send at least 2052 bytes of endFillByte
+  // ----------------------------------------------------------------------------------
+  VS1053_WriteSdiByte (endbyte, 2052);
+  //_delay_ms (10);                                       // accor. to BALDRAM
+
+  // set SCI_MODE bit SM_CANCEL
+  // ----------------------------------------------------------------------------------
+  VS1053_WriteSci (SCI_MODE, SM_SDINEW | SM_CANCEL);
+
+  // send at least 32 bytes of endFillByte, max 2048 bytes then read SCI_MODE.
+  // If SM_CANCEL is still set, send next 32 bytes of endfillbyte
+  // If SM_CANCEL hasn't cleared after sending 2048 bytes, do a software reset
+  // ----------------------------------------------------------------------------------
+  VS1053_ActivateData ();                               // clear xDCS
+  while (n--) {
+    VS1053_DreqWait ();                                 // wait until DREQ is high
+    for (i = 0; i < 32; i++) {                          // send data
+      SPI_Transfer (endbyte);
     }
-    VS1053_ActivateData ();                             // clear xDCS
-    SPI_Transfer (buffer[i++]);                         // send data
+    if (!(VS1053_ReadSci (SCI_MODE) && SM_CANCEL)) {    // bit SM_CANCEL is null?
+      VS1053_DeactivateData ();                         // set xDCS
+      return VS1053_ReadSci (SCI_HDAT0);                // exit
+    }
+    _delay_ms (10);                                     // accor. to BALDRAM
   }
+  VS1053_DeactivateData ();                             // set xDCS
+  VS1053_SoftReset ();                                  // software reset required
+
+  return VS1053_ReadSci (SCI_HDAT0);                    // exit
 }
 
 /**
- * @brief   Playing song according to order file number
+ * @brief   Set volume
  *
- * @param   FAT32_t * - FAT32 structure
- * @param   uint16_t - which file in order of root directory
+ * @param   uint8_t lef channel
+ * @param   uint8_t right channel
  *
  * @return  void
  */
-void VS1053_Play_Song (FAT32_t * FAT32, uint16_t filenum)
+void VS1053_SetVolume (uint8_t left, uint8_t right)
 {
-  uint8_t sectors = FAT32->sectors_per_cluster;
-  uint8_t buffer[BYTES_PER_SECTOR];
-  uint32_t sector;
-
-  DE_t * File = FAT32_Get_File_Info (FAT32, (uint32_t) filenum);
-  uint32_t cluster = ((uint32_t) FAT32_Get_2Bytes_LE (File->FirstClustHI) << 16) | FAT32_Get_2Bytes_LE (File->FirstClustLO);
-
-  // Reset
-  // ----------------------------------------------------------------------------------
-  //VS1053_Reset ();                                      // hardware reset
-  VS1053_SoftReset ();                                  // software reset
-
-  do {
-
-    sector = FAT32_Get_1st_Sector_Of_Clus (FAT32, cluster);
-
-    // Read Cluster
-    // --------------------------------------------------------------------------------
-    while (sectors--) {
-      SD_Read_Block (sector++, buffer);                 // Read Sector
-      VS1053_Send_Buffer (buffer, BYTES_PER_SECTOR);    // send buffer to codec
-    }
-
-    cluster = FAT32_FAT_Next_Cluster (FAT32, cluster);  // get next cluster
-    cluster &= 0x0FFFFFFF;                              // mask first nibble
-
-  } while (cluster < 0x0FFFFFF8);                       // 0x?ffffff8 - 0x?fffffff = Last cluster in file (EOC)
+  uint16_t volume = (left << 8) | right;                // set volume integer
+  VS1053_WriteSci (SCI_VOL, volume);                    // send command
 }
