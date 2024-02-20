@@ -23,6 +23,18 @@
 // ------------------------------------------------------------------
 #include "sd.h"
 
+/*
+ * +------------------------------------------------------------------------------------+
+ * |== STATIC FUNCTIONS ================================================================|
+ * +------------------------------------------------------------------------------------+
+ */
+/* Init SD Chip Select Pin */
+static inline void SD_CS_Init (void) { SD_DDR_CS |= (1 << SD_CS); }
+/* Activate Command / clear XCS */
+static inline void SD_CS_Enable (void) { SD_PORT_CS &= ~(1 << SD_CS); }
+/* Deactivate Command / set XCS */
+static inline void SD_CS_Disable (void) { SD_PORT_CS |= (1 << SD_CS); }
+
 /**
  * @brief   SD Card Init
  *
@@ -35,9 +47,11 @@ uint8_t SD_Init (SD * sd)
   uint8_t r[5];
   uint8_t attempt;
 
-  // SPI Init (cs, settings)
+  // SPI Init (settings, double speed)
   // ----------------------------------------------------------------
-  SPI_Init (SPI_SS, SPI_MASTER | SPI_MODE_0 | SPI_MSB_FIRST | SPI_FOSC_DIV_128);
+  SD_CS_Init ();
+  SPI_Init (SPI_MASTER | SPI_MODE_0 | SPI_MSB_FIRST | SPI_FOSC_DIV_128, 0);
+  SPI_Enable ();
 
   // Power Up 
   // ----------------------------------------------------------------
@@ -134,7 +148,7 @@ uint8_t SD_Read_Block (uint32_t address, uint8_t * buffer)
   uint16_t i = 0;
 
   SPI_Transfer (0xff);                                  // dummy byte
-  CS_ENABLE ();                                         // CS low
+  SD_CS_Enable ();                                      // CS low
   SPI_Transfer (0xff);                                  // dummy byte
 
   // === R1 response ===
@@ -164,7 +178,7 @@ uint8_t SD_Read_Block (uint32_t address, uint8_t * buffer)
   }
 
   SPI_Transfer (0xff);                                  // dummy byte
-  CS_DISABLE ();                                        // CS high
+  SD_CS_Disable ();                                     // CS high
   SPI_Transfer (0xff);                                  // dummy byte
 
   return token;
@@ -185,7 +199,7 @@ void SD_Power_Up (void)
 
   // Supply Ram Up Sequence
   // ----------------------------------------------------------------
-  CS_DISABLE();                                         // hold CS high
+  SD_CS_Disable();                                      // hold CS high
   _delay_ms(1);                                         // supply ramp up time
 
   for (uint8_t i=0; i<10; i++) {                        // supply ramp up cycles
@@ -194,7 +208,7 @@ void SD_Power_Up (void)
   // Deselect Card
   // accor. http://www.rjhcoding.com/avrc-sd-interface-1.php
   // ----------------------------------------------------------------
-  CS_DISABLE();
+  SD_CS_Disable();
   SPI_Transfer (0xff);                                  // dummy byte
 }
 
@@ -212,7 +226,7 @@ void SD_Power_Up (void)
 uint8_t SD_Send_CMDx (uint8_t cmd, uint32_t arg, uint8_t crc, uint8_t * r, uint8_t n)
 {
   SPI_Transfer (0xff);                                  // dummy byte
-  CS_ENABLE ();                                         // CS low
+  SD_CS_Enable ();                                      // CS low
   SPI_Transfer (0xff);                                  // dummy byte
 
   // === R1 response ===
@@ -221,7 +235,7 @@ uint8_t SD_Send_CMDx (uint8_t cmd, uint32_t arg, uint8_t crc, uint8_t * r, uint8
   uint8_t response = SD_Get_Response_Rn (r, n);
 
   SPI_Transfer (0xff);                                  // dummy byte
-  CS_DISABLE ();                                        // CS high
+  SD_CS_Disable ();                                     // CS high
   SPI_Transfer (0xff);                                  // dummy byte
   
   return response;
