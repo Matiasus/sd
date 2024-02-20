@@ -212,16 +212,6 @@
    * @return  DE_t *
    *  */
   DE_t * FAT32_Get_File_Info (FAT32_t *, uint32_t);
-  
-  /**
-   * @brief   Read Root Directory
-   *
-   * @param   FAT32_t * FAT32
-   * @param   uint32_t cluster
-   *
-   * @return  uint32_t
-   *  */
-  uint32_t FAT32_Read_File (FAT32_t *, uint32_t);
 
   /**
    * @brief   Read Next Cluster From FAT
