@@ -183,7 +183,16 @@
    *
    * @return  void
    */
-  void VS1053_Write_To_WRAM (uint16_t, uint16_t);
+  void VS1053_Write_To_RAM (uint16_t, uint16_t);
+
+  /**
+   * @brief   Read from RAM
+   *
+   * @param   uint16_t addr
+   *
+   * @return  uint16_t
+   */
+  uint16_t VS1053_Read_From_RAM (uint16_t);
 
   /**
    * +-----------------------------------------------------------------------------------+
