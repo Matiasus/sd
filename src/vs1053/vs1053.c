@@ -155,6 +155,19 @@ void VS1053_WriteSdiByte (uint8_t byte, uint16_t n)
 }
 
 /**
+ * @brief   Read from RAM
+ *
+ * @param   uint16_t addr
+ *
+ * @return  uint16_t
+ */
+uint16_t VS1053_Read_From_RAM (uint16_t addr)
+{
+  VS1053_WriteSci (SCI_WRAMADDR, addr);
+  return VS1053_ReadSci (SCI_WRAM);
+}
+
+/**
  * @brief   Write To RAM
  *
  * @param   uint16_t addr
@@ -162,12 +175,11 @@ void VS1053_WriteSdiByte (uint8_t byte, uint16_t n)
  *
  * @return  void
  */
-void VS1053_Write_To_WRAM (uint16_t addr, uint16_t data)
+void VS1053_Write_To_RAM (uint16_t addr, uint16_t data)
 {
   VS1053_WriteSci (SCI_WRAMADDR, addr);
   VS1053_WriteSci (SCI_WRAM, data);
 }
-
 /**
  * +-----------------------------------------------------------------------------------+
  * |== TEST FUNCTIONS =================================================================|
@@ -559,7 +571,41 @@ void VS1053_Send_Buffer (uint8_t * buffer, uint16_t n)
       VS1053_DeactivateData ();                         // set xDCS
     }
     VS1053_ActivateData ();                             // clear xDCS
-    SPI_Transfer (buffer[i++]);                         // send data
+
+    // send 32 bytes of data
+    // --------------------------------------------------------------------------------
+    SPI_Transfer (buffer[i++]);                         // send 32 bytes of data
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
+    SPI_Transfer (buffer[i++]);                         //
   }
 }
 
@@ -582,19 +628,30 @@ void VS1053_Play_Song (FAT32_t * FAT32, uint16_t filenum)
 
   // Reset
   // ----------------------------------------------------------------------------------
-  //VS1053_Reset ();                                      // hardware reset
-  VS1053_SoftReset ();                                  // software reset
+  VS1053_SoftReset ();                                  // software reset, SCI_DECODE_TIME is reset at every hardware and software reset
+  //VS1053_WriteSci (SCI_DECODE_TIME, 0);                 // null decoded time
 
   do {
 
     sector = FAT32_Get_1st_Sector_Of_Clus (FAT32, cluster);
 
-    // Read Cluster
+    // Read & Send Cluster to codec 
     // --------------------------------------------------------------------------------
     while (sectors--) {
       SD_Read_Block (sector++, buffer);                 // Read Sector
       VS1053_Send_Buffer (buffer, BYTES_PER_SECTOR);    // send buffer to codec
     }
+
+    uint16_t hdat1 = VS1053_ReadSci (SCI_HDAT1);
+    if ((h1 & 0xffe6) == 0xffe2) {
+      SSD1306_DrawString ("MP3", NORMAL);
+    } else if ((h1 & 0xffe6) == 0xffe4) {
+      SSD1306_DrawString ("MP2", NORMAL);
+    } else if ((h1 & 0xffe6) == 0xffe6) {
+      SSD1306_DrawString ("MP1", NORMAL);
+    } 
+
+    break;
 
     cluster = FAT32_FAT_Next_Cluster (FAT32, cluster);  // get next cluster
     cluster &= 0x0FFFFFFF;                              // mask first nibble
@@ -613,8 +670,8 @@ void VS1053_Play_Song (FAT32_t * FAT32, uint16_t filenum)
  */
 void VS1053_Switch_To_MP3 (void)
 {
-  VS1053_Write_To_WRAM (GPIO_DDR, 3);
-  VS1053_Write_To_WRAM (GPIO_ODATA, 0);
+  VS1053_Write_To_RAM (GPIO_DDR, 3);
+  VS1053_Write_To_RAM (GPIO_ODATA, 0);
   _delay_ms (100);
   VS1053_SoftReset ();
 }
