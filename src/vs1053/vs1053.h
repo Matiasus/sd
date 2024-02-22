@@ -116,6 +116,11 @@
   #define SS_AD_CLOCK             1  //
   #define SS_REFERENCE_SEL        0  //
 
+  // GPIO
+  // --------------------------------------------------------------------------------------- 
+  #define GPIO_DDR                0xC017
+  #define GPIO_ODATA              0xC019
+
   // READ / WRITE
   #define VS10XX_READ             0x3
   #define VS10XX_WRITE            0x2
@@ -173,6 +178,25 @@
    * @return  void
    */
   void VS1053_WriteSdiByte (uint8_t, uint16_t);
+
+  /**
+   * @brief   Write To RAM
+   *
+   * @param   uint16_t addr
+   * @param   uint16_t data
+   *
+   * @return  void
+   */
+  void VS1053_Write_To_RAM (uint16_t, uint16_t);
+
+  /**
+   * @brief   Read from RAM
+   *
+   * @param   uint16_t addr
+   *
+   * @return  uint16_t
+   */
+  uint16_t VS1053_Read_From_RAM (uint16_t);
 
   /**
    * +-----------------------------------------------------------------------------------+
@@ -308,5 +332,15 @@
    * @return  void
    */
   void VS1053_Play_Song_Test (FAT32_t *, uint16_t);
+
+  /**
+   * @brief   Switch to MP3
+   * @source  https://github.com/baldram/ESP_VS1053_Library/blob/master/src/VS1053.cpp#L322
+   *
+   * @param   void
+   *
+   * @return  void
+   */
+  void VS1053_Switch_To_MP3 (void);
 
 #endif

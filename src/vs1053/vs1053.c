@@ -156,6 +156,33 @@ void VS1053_WriteSdiByte (uint8_t byte, uint16_t n)
 }
 
 /**
+ * @brief   Read from RAM
+ *
+ * @param   uint16_t addr
+ *
+ * @return  uint16_t
+ */
+uint16_t VS1053_Read_From_RAM (uint16_t addr)
+{
+  VS1053_WriteSci (SCI_WRAMADDR, addr);
+  return VS1053_ReadSci (SCI_WRAM);
+}
+
+/**
+ * @brief   Write To RAM
+ *
+ * @param   uint16_t addr
+ * @param   uint16_t data
+ *
+ * @return  void
+ */
+void VS1053_Write_To_RAM (uint16_t addr, uint16_t data)
+{
+  VS1053_WriteSci (SCI_WRAMADDR, addr);
+  VS1053_WriteSci (SCI_WRAM, data);
+}
+
+/**
  * +-----------------------------------------------------------------------------------+
  * |== TEST FUNCTIONS =================================================================|
  * +-----------------------------------------------------------------------------------+
@@ -278,7 +305,7 @@ uint16_t VS1053_TestMemory (void)
   _delay_ms (300);                                      // wait for 1100000 clock cycles
   data = VS1053_ReadSci (SCI_HDAT0);                    // result read from the SCI reg SCI_HDAT0
 
-  VS1053_SoftReset ();                                  // soft reset
+  //VS1053_SoftReset ();                                  // soft reset
 
   return data;
 }
@@ -321,16 +348,47 @@ uint16_t VS1053_TestSample (const char * sample, uint16_t n)
  *
  * @return  void
  */
-void VS1053_Send_Buffer (uint8_t * buffer, uint16_t n)
+void VS1053_Send_Buffer (uint8_t * data, uint16_t n)
 {
-  uint16_t i = 0;
+  uint8_t loops = n/32;
 
-  while (i < n) {
-    while (!(VS1053_PORT_DREQ & (1 << VS1053_DREQ))) {  // DREQ wait
-      VS1053_DeactivateData ();                         // set xDCS
-    }
-    VS1053_ActivateData ();                             // clear xDCS
-    SPI_Transfer (buffer[i++]);                         // send data
+  while (loops--) {
+
+    VS1053_DreqWait ();
+    VS1053_ActivateData ();                             // clear xDCS   
+    SPI_Transfer (*data++);                             // 32 bytes
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    SPI_Transfer (*data++);                             //
+    VS1053_DeactivateData ();                           // set xDCS
   }
 }
 
@@ -374,7 +432,7 @@ void VS1053_Play_Song (FAT32_t * FAT32, uint16_t filenum)
 }
 
 /**
- * @brief   Testing
+ * @brief   Playing song according to order file number
  *
  * @param   FAT32_t * - FAT32 structure
  * @param   uint16_t - which file in order of root directory
@@ -383,41 +441,60 @@ void VS1053_Play_Song (FAT32_t * FAT32, uint16_t filenum)
  */
 void VS1053_Play_Song_Test (FAT32_t * FAT32, uint16_t filenum)
 {
-  char str[10];
-  uint8_t sectors = FAT32->sectors_per_cluster;
+  char str[8];
+  uint8_t sectors;
   uint8_t buffer[BYTES_PER_SECTOR];
   uint32_t sector;
 
   DE_t * File = FAT32_Get_File_Info (FAT32, (uint32_t) filenum);
   uint32_t cluster = ((uint32_t) FAT32_Get_2Bytes_LE (File->FirstClustHI) << 16) | FAT32_Get_2Bytes_LE (File->FirstClustLO);
 
-  SSD1306_ClearScreen ();
-  sprintf (str, "%08x ", (unsigned int) cluster);
-  SSD1306_DrawString (str, NORMAL);
+  // Reset
+  // ----------------------------------------------------------------------------------
+  //VS1053_SoftReset ();                                  // software reset, SCI_DECODE_TIME is reset at every hardware and software reset
+  VS1053_WriteSci (SCI_AUDATA, 0xAC45);
+  //VS1053_WriteSci (SCI_DECODE_TIME, 0);                 // null decoded time
+  //VS1053_Write_To_RAM (0x1e29, 0);
 
   do {
 
+    sectors = FAT32->sectors_per_cluster;
     sector = FAT32_Get_1st_Sector_Of_Clus (FAT32, cluster);
-/*
-    // Read Cluster
+
+    // Read & Send Cluster to codec 
     // --------------------------------------------------------------------------------
     while (sectors--) {
       SD_Read_Block (sector++, buffer);                 // Read Sector
-
-      for (uint16_t i=0; i<512; i++) {
-        sprintf (str, "%02x ", (unsigned int) buffer[i]);
-        SSD1306_DrawString (str, NORMAL);
-      }
+      VS1053_Send_Buffer (buffer, BYTES_PER_SECTOR);    // send buffer to codec
     }
-*/
-    cluster = FAT32_FAT_Next_Cluster (FAT32, cluster);  // get next cluster
-    sprintf (str, "%08x ", (unsigned int) cluster);
-    SSD1306_DrawString (str, NORMAL);
 
+    cluster = FAT32_FAT_Next_Cluster (FAT32, cluster);  // get next cluster
     cluster &= 0x0FFFFFFF;                              // mask first nibble
 
   } while (cluster < 0x0FFFFFF8);                       // 0x?ffffff8 - 0x?fffffff = Last cluster in file (EOC)
 
+  sprintf (str, "%04x ", VS1053_ReadSci (SCI_HDAT0));
+  SSD1306_DrawString (str, NORMAL);
+
+  // Cancel playback
+  // ----------------------------------------------------------------------------------
+  VS1053_PlayCancel ();
+}
+
+/**
+ * @brief   Switch to MP3
+ * @source  https://github.com/baldram/ESP_VS1053_Library/blob/master/src/VS1053.cpp#L322
+ *
+ * @param   void
+ *
+ * @return  void
+ */
+void VS1053_Switch_To_MP3 (void)
+{
+  VS1053_Write_To_RAM (GPIO_DDR, 3);
+  VS1053_Write_To_RAM (GPIO_ODATA, 0);
+  _delay_ms (100);
+  VS1053_SoftReset ();
 }
 
 /**
@@ -437,7 +514,7 @@ void VS1053_Init (void)
 {
   VS1053_DDR_XRES |= (1 << VS1053_XRES);                // RESET as output
   VS1053_DDR_XDCS |= (1 << VS1053_XDCS);                // DATA SELECT as output
-  VS1053_DDR_XCS |= (1 << VS1053_XCS);                  // CHIP SELECT as output
+  VS1053_DDR_XCS |= (1 << VS1053_XCS);                  // COMMAND SELECT as output
 
   VS1053_DDR_DREQ &= ~(1 << VS1053_DREQ);               // DATA REQUEST as input
   VS1053_PORT_DREQ |= (1 << VS1053_DREQ);               // DATA REQUEST pullup activate
@@ -518,12 +595,11 @@ void VS1053_Reset (void)
   VS1053_SetVolume (0x66,0x66);                         // set volume level
 
   VS1053_SoftReset();                                   // soft reset
-  //SPI_FastSpeedInit ();                                 // f = fclk/16 * 2 = 1MHz
 
   SPI_Init (SPI_MASTER |                                // Fast Speed Init
             SPI_MODE_0 | 
             SPI_MSB_FIRST | 
-            SPI_FOSC_DIV_16, 1);                        // f = fclk/16 = 1 MHz
+            SPI_FOSC_DIV_16, 0);                        // f = fclk/16 = 1 MHz
   SPI_Enable ();
 }
 
