@@ -22,7 +22,7 @@
 // INCLUDE libraries
 #include "src/fat32.h"
 #include "src/vs1053/vs1053.h"
-#include "src/vs1053/vs1053_hello.h"
+//#include "src/vs1053/vs1053_hello.h"
 
 /**
  * @desc    Main function
@@ -34,7 +34,7 @@
 int main (void)
 {
   char str[10];
-  uint16_t data;
+
   uint32_t files;
   FAT32_t FAT32 = {
     .root_dir_clus_num = 0, 
@@ -51,25 +51,6 @@ int main (void)
   SSD1306_SetPosition (7, 0);
   SSD1306_DrawString ("MP3 SD-FAT32 PLAYER", NORMAL);
 
-  // VS1053 Init
-  // ----------------------------------------------------------------
-  VS1053_Init ();
-
-  // VS1053 Memory Test
-  // ----------------------------------------------------------------
-  SSD1306_SetPosition (1, 3);
-  SSD1306_DrawString ("CODEC", NORMAL);
-  SSD1306_SetPosition (103, 3);
-  data = VS1053_TestMemory ();   
-  if (data != VS1053_MEMTEST_OK) {
-    SSD1306_DrawString ("[ER]", NORMAL);
-    return FAT32_ERROR;
-  }
-  VS1053_TestSine (VS10XX_FREQ_1kHz);                             // sine test 1kHz
-  //VS1053_TestSine (VS10XX_FREQ_5kHz);                             // sine test 5kHz
-  //VS1053_TestSample (HelloMP3, sizeof(HelloMP3)-1);               // say Hello
-  SSD1306_DrawString ("[OK]", NORMAL);
- 
   // Init SD
   // ----------------------------------------------------------------
   SSD1306_SetPosition (1, 4);
@@ -83,21 +64,40 @@ int main (void)
 
   // Root Directory Number Of Files
   // ----------------------------------------------------------------
+  /*
   files = FAT32_Root_Dir_Files (&FAT32);
   SSD1306_SetPosition (1, 5);
   (files > 10) ? (sprintf (str, "[%d]", (int) files)) : (sprintf (str, "[ %d]", (int) files));
   SSD1306_DrawString ("FILES", NORMAL);
   SSD1306_SetPosition (103, 5);
   SSD1306_DrawString (str, NORMAL);
-
+*/
+  // VS1053 Init
+  // ----------------------------------------------------------------
+  VS1053_Init ();
+/*
+  // VS1053 Memory Test
+  // ----------------------------------------------------------------
+  SSD1306_SetPosition (1, 3);
+  SSD1306_DrawString ("CODEC", NORMAL);
+  SSD1306_SetPosition (103, 3);
+  data = VS1053_TestMemory ();   
+  if (data != VS1053_MEMTEST_OK) {
+    SSD1306_DrawString ("[ER]", NORMAL);
+    return FAT32_ERROR;
+  }
+  VS1053_TestSine (VS10XX_FREQ_1kHz);                             // sine test 1kHz
+  //VS1053_TestSine (VS10XX_FREQ_5kHz);                             // sine test 5kHz
+  VS1053_TestSample (HelloMP3, sizeof(HelloMP3)-1);               // say Hello
+  SSD1306_DrawString ("[OK]", NORMAL);
+*/
   // Read File
   // ----------------------------------------------------------------
-  SSD1306_SetPosition (1, 6);
+  SSD1306_SetPosition (1, 5);
   SSD1306_DrawString ("PLAY", NORMAL);
-  _delay_ms (1000);
+  SSD1306_SetPosition (103, 5);
+  SSD1306_DrawString ("[ 3]", NORMAL);
   VS1053_Play_Song_Test (&FAT32, 1);
-  SSD1306_SetPosition (103, 6);
-  SSD1306_DrawString ("[OK]", NORMAL);
 
   // EXIT
   // ----------------------------------------------------------------
