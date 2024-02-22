@@ -32,6 +32,10 @@
  */
 void SPI_Init (uint8_t settings, uint8_t double_speed)
 {
+  // SPI Disable
+  // ----------------------------------------------------------------  
+  SPI_SPCR &= ~(1 << SPE);
+  
   // SPI PORT Init
   // ----------------------------------------------------------------
   SPI_DDR |= (1 << SPI_MOSI) | (1 << SPI_SCK) | (1 << SPI_SS);
