@@ -11,7 +11,7 @@
  * @version     1.0
  * @test        AVR Atmega328p
  *
- * @depend      avr/io.h, util/delay.h, spi.h, lcd/ssd1306.h, fat32.h
+ * @depend      avr/io.h, util/delay.h, spi.h, lcd/ssd1306.h
  * --------------------------------------------------------------------------------------+
  * @interface   SPI connected through 7 pins
  * @pins        5V, DGND, MOSI, DREQ,  XCS
@@ -30,15 +30,19 @@
   // INCLUDE libraries
   #include <avr/io.h>
   #include <util/delay.h>
-  #include "spi.h"
-  #include "lcd/ssd1306.h"
+  #include "../spi.h"
 
-  // SPI PORT PIN Definition
+  // PORT
   #define VS1053_DDR              SPI_DDR
   #define VS1053_PORT             SPI_PORT
+
+  // PIN
   #define VS1053_SCK              SPI_SCK
   #define VS1053_MOSI             SPI_MOSI
   #define VS1053_MISO             SPI_MISO
+  //#define VS1053_XCS              SPI_SS
+  //#define VS1053_DREQ             1
+  //#define VS1053_XDCS             0
 
   // RESET
   #define VS1053_DDR_XRES         DDRB
@@ -97,11 +101,6 @@
   #define SM_ADPCM                0x1000 // PCM/ADPCM recording active [0 no; 1 yes]
   #define SM_LINE1                0x4000 // MIC / LINE1 selector [0 MICP; 1 LINE1]
   #define SM_CLK_RANGE            0x8000 // Input clock range [0 12..13MHz; 1 24..26MHz]
- 
-  // GPIO
-  // --------------------------------------------------------------------------------------- 
-  #define GPIO_DDR                0xC017
-  #define GPIO_ODATA              0xC019
 
   // SCI_STATUS
   // ---------------------------------------------------------------------------------------
@@ -116,6 +115,11 @@
   #define SS_APDOWN1              2  //
   #define SS_AD_CLOCK             1  //
   #define SS_REFERENCE_SEL        0  //
+
+  // GPIO
+  // --------------------------------------------------------------------------------------- 
+  #define GPIO_DDR                0xC017
+  #define GPIO_ODATA              0xC019
 
   // READ / WRITE
   #define VS10XX_READ             0x3
@@ -174,7 +178,7 @@
    * @return  void
    */
   void VS1053_WriteSdiByte (uint8_t, uint16_t);
-  
+
   /**
    * @brief   Write To RAM
    *
@@ -318,7 +322,17 @@
    * @return  void
    */
   void VS1053_Play_Song (FAT32_t *, uint16_t);
-  
+
+  /**
+   * @brief   Testing
+   *
+   * @param   FAT32_t * - FAT32 structure
+   * @param   uint16_t - which file in order of root directory
+   *
+   * @return  void
+   */
+  void VS1053_Play_Song_Test (FAT32_t *, uint16_t);
+
   /**
    * @brief   Switch to MP3
    * @source  https://github.com/baldram/ESP_VS1053_Library/blob/master/src/VS1053.cpp#L322
