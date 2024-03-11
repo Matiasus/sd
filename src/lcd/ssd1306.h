@@ -219,11 +219,10 @@
    * @desc    SSD1306 Draw String
    *
    * @param   char * string
-   * @param   uint16_t
    * @param   E_Font
    *
    * @return  uint8_t
    */
-  uint8_t SSD1306_DrawStringTo (char *, uint16_t, enum E_Font);
+  uint8_t SSD1306_DrawSongName (char *, enum E_Font);
 
 #endif

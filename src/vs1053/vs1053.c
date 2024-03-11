@@ -54,7 +54,7 @@ static inline void VS1053_ActivateReset (void) { VS1053_PORT_XRES &= ~(1 << VS10
 static inline void VS1053_DeactivateReset (void) { VS1053_PORT_XRES |= (1 << VS1053_XRES); }
 
 /* DREQ Wait */
-static inline void VS1053_DreqWait (void) { while (!(VS1053_PORT_DREQ & (1 << VS1053_DREQ))); }
+static inline void VS1053_DreqWait (void) { while (!(VS1053_PIN_DREQ & (1 << VS1053_DREQ))); }
 
 /**
  * +-----------------------------------------------------------------------------------+
@@ -79,6 +79,9 @@ void VS1053_WriteSci (uint8_t addr, uint16_t command)
   SPI_Transfer ((uint8_t)(command >> 8));               // high byte
   SPI_Transfer ((uint8_t)(command & 0xFF));             // low byte
   VS1053_DeactivateCommand ();                          // set xCS
+
+  VS1053_DreqWait ();                                   // wait until DREQ is high
+  _delay_ms (1);
 }
 
 /**
@@ -99,6 +102,9 @@ uint16_t VS1053_ReadSci (uint8_t addr)
   data = (uint16_t) SPI_Transfer (0x00) << 8;           // high byte
   data |= SPI_Transfer (0x00);                          // low byte
   VS1053_DeactivateCommand ();                          // set xCS
+
+  VS1053_DreqWait ();                                   // wait until DREQ is high
+  _delay_ms (1);
 
   return data;                                          // return content
 }
@@ -327,7 +333,7 @@ uint16_t VS1053_TestSample (const char * sample, uint16_t n)
   //VS1053_Reset ();                                      // hardware reset    
 
   while (i < n) {
-    while (!(VS1053_PORT_DREQ & (1 << VS1053_DREQ))) {       // DREQ wait
+    while (!(VS1053_PIN_DREQ & (1 << VS1053_DREQ))) {   // DREQ wait
       VS1053_DeactivateData ();                         // set xDCS
     }
     VS1053_ActivateData ();                             // clear xDCS
@@ -350,12 +356,13 @@ uint16_t VS1053_TestSample (const char * sample, uint16_t n)
  */
 void VS1053_Send_Buffer (uint8_t * data, uint16_t n)
 {
-  uint8_t loops = n/32;
+  uint8_t loops = 16;
 
   while (loops--) {
 
     VS1053_DreqWait ();
-    VS1053_ActivateData ();                             // clear xDCS   
+    VS1053_ActivateData ();                             // clear xDCS
+
     SPI_Transfer (*data++);                             // 32 bytes
     SPI_Transfer (*data++);                             //
     SPI_Transfer (*data++);                             //
@@ -388,6 +395,7 @@ void VS1053_Send_Buffer (uint8_t * data, uint16_t n)
     SPI_Transfer (*data++);                             //
     SPI_Transfer (*data++);                             //
     SPI_Transfer (*data++);                             //
+
     VS1053_DeactivateData ();                           // set xDCS
   }
 }
@@ -402,59 +410,13 @@ void VS1053_Send_Buffer (uint8_t * data, uint16_t n)
  */
 void VS1053_Play_Song (FAT32_t * FAT32, uint16_t filenum)
 {
-  uint8_t sectors = FAT32->sectors_per_cluster;
-  uint8_t buffer[BYTES_PER_SECTOR];
-  uint32_t sector;
-
-  DE_t * File = FAT32_Get_File_Info (FAT32, (uint32_t) filenum);
-  uint32_t cluster = ((uint32_t) FAT32_Get_2Bytes_LE (File->FirstClustHI) << 16) | FAT32_Get_2Bytes_LE (File->FirstClustLO);
-
-  // Reset
-  // ----------------------------------------------------------------------------------
-  //VS1053_Reset ();                                      // hardware reset
-  VS1053_SoftReset ();                                  // software reset
-
-  do {
-
-    sector = FAT32_Get_1st_Sector_Of_Clus (FAT32, cluster);
-
-    // Read Cluster
-    // --------------------------------------------------------------------------------
-    while (sectors--) {
-      SD_Read_Block (sector++, buffer);                 // Read Sector
-      VS1053_Send_Buffer (buffer, BYTES_PER_SECTOR);    // send buffer to codec
-    }
-
-    cluster = FAT32_FAT_Next_Cluster (FAT32, cluster);  // get next cluster
-    cluster &= 0x0FFFFFFF;                              // mask first nibble
-
-  } while (cluster < 0x0FFFFFF8);                       // 0x?ffffff8 - 0x?fffffff = Last cluster in file (EOC)
-}
-
-/**
- * @brief   Playing song according to order file number
- *
- * @param   FAT32_t * - FAT32 structure
- * @param   uint16_t - which file in order of root directory
- *
- * @return  void
- */
-void VS1053_Play_Song_Test (FAT32_t * FAT32, uint16_t filenum)
-{
-  char str[8];
+  //char str[3];
   uint8_t sectors;
   uint8_t buffer[BYTES_PER_SECTOR];
   uint32_t sector;
 
   DE_t * File = FAT32_Get_File_Info (FAT32, (uint32_t) filenum);
   uint32_t cluster = ((uint32_t) FAT32_Get_2Bytes_LE (File->FirstClustHI) << 16) | FAT32_Get_2Bytes_LE (File->FirstClustLO);
-
-  // Reset
-  // ----------------------------------------------------------------------------------
-  //VS1053_SoftReset ();                                  // software reset, SCI_DECODE_TIME is reset at every hardware and software reset
-  VS1053_WriteSci (SCI_AUDATA, 0xAC45);
-  //VS1053_WriteSci (SCI_DECODE_TIME, 0);                 // null decoded time
-  //VS1053_Write_To_RAM (0x1e29, 0);
 
   do {
 
@@ -472,9 +434,6 @@ void VS1053_Play_Song_Test (FAT32_t * FAT32, uint16_t filenum)
     cluster &= 0x0FFFFFFF;                              // mask first nibble
 
   } while (cluster < 0x0FFFFFF8);                       // 0x?ffffff8 - 0x?fffffff = Last cluster in file (EOC)
-
-  sprintf (str, "%04x ", VS1053_ReadSci (SCI_HDAT0));
-  SSD1306_DrawString (str, NORMAL);
 
   // Cancel playback
   // ----------------------------------------------------------------------------------
@@ -524,6 +483,7 @@ void VS1053_Init (void)
             SPI_MSB_FIRST | 
             SPI_FOSC_DIV_128, 0);                       // f = fclk/128 = 125 kHz
   SPI_Enable ();
+  _delay_ms (10);
 
   VS1053_Reset ();                                      // init reset routine
 }
@@ -539,7 +499,7 @@ void VS1053_Init (void)
 void VS1053_Reset (void)
 {
   VS1053_ActivateReset ();                              // clear XRST
-  _delay_ms (2);                                        // after a hardware reset (or at power-up) DREQ will stay down for around 22000 clock cycles,
+  _delay_ms (10);                                       // after a hardware reset (or at power-up) DREQ will stay down for around 22000 clock cycles,
                                                         // which means an approximate 1.8 ms delay if VS1053b is run at 12.288 MHz
   SPI_Transfer (0xFF);                                  // send dummy SPI byte to initialize SPI
 
@@ -548,7 +508,7 @@ void VS1053_Reset (void)
   VS1053_DeactivateData ();                             // set xDCS
   VS1053_DeactivateReset ();                            // set XRST
   VS1053_SetVolume (0xff,0xff);                         // activate analog powerdown mode
-
+  
   // SCI_CLOCKF register
   // ---------------------------------------
   //
@@ -601,6 +561,8 @@ void VS1053_Reset (void)
             SPI_MSB_FIRST | 
             SPI_FOSC_DIV_16, 0);                        // f = fclk/16 = 1 MHz
   SPI_Enable ();
+
+  _delay_ms (100);
 }
 
 /**
@@ -626,6 +588,8 @@ void VS1053_SoftReset (void)
   SPI_Transfer (0);
   SPI_Transfer (0);
   VS1053_DeactivateData ();                             // set xDCS
+
+  _delay_ms (100);
 }
 
 /**

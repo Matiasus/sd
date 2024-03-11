@@ -226,11 +226,11 @@ uint32_t FAT32_Get_1st_Sector_Of_Clus (FAT32_t * FAT32, uint32_t cluster)
  * @brief   Get File Info from Root Directory
  *
  * @param   FAT32_t * FAT32
- * @param   uint32_t file number
+ * @param   uint8_t file number
  *
  * @return  DE_t * => directory entry
  *  */
-DE_t * FAT32_Get_File_Info (FAT32_t * FAT32, uint32_t filenum)
+DE_t * FAT32_Get_File_Info (FAT32_t * FAT32, uint8_t filenum)
 {
   DE_t * DE;
   uint8_t sectors = FAT32->sectors_per_cluster;                               // number of sectors in cluster

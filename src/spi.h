@@ -26,21 +26,17 @@
   #include <avr/io.h>
 
   // atmega328p
-  #if defined(__AVR_ATmega328P__)
+  #define SPI_DDR             DDRB
+  #define SPI_PORT            PORTB
+  #define SPI_SCK             5     // or SCLK
+  #define SPI_MISO            4     // or DO
+  #define SPI_MOSI            3     // or SDA, SDI, DI
+  #define SPI_SS              2     // or CS
 
-    #define SPI_DDR           DDRB
-    #define SPI_PORT          PORTB
-    #define SPI_SCK           PINB5     // or SCLK
-    #define SPI_MISO          PINB4     // or DO
-    #define SPI_MOSI          PINB3     // or SDA, SDI, DI
-    #define SPI_SS            PINB2     // or CS
-
-    // SPI registers
-    #define SPI_SPSR          SPSR
-    #define SPI_SPCR          SPCR
-    #define SPI_SPDR          SPDR
-
-  #endif
+  // SPI registers
+  #define SPI_SPSR            SPSR
+  #define SPI_SPCR            SPCR
+  #define SPI_SPDR            SPDR
 
   // SPI init definitions
   #define SPI_MASTER          0x10

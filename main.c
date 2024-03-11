@@ -34,8 +34,9 @@
 int main (void)
 {
   char str[10];
-
+  DE_t * file;
   uint32_t files;
+
   FAT32_t FAT32 = {
     .root_dir_clus_num = 0, 
     .sectors_per_cluster = 0, 
@@ -53,51 +54,34 @@ int main (void)
 
   // Init SD
   // ----------------------------------------------------------------
-  SSD1306_SetPosition (1, 4);
-  SSD1306_DrawString ("FAT32", NORMAL);
-  SSD1306_SetPosition (103, 4);
   if (FAT32_Init(&FAT32) == FAT32_ERROR) {
-    SSD1306_DrawString ("[ER]", NORMAL);
+    SSD1306_SetPosition (40, 4);
+    SSD1306_DrawString ("[ERROR]", NORMAL);
     return FAT32_ERROR;
   }
-  SSD1306_DrawString ("[OK]", NORMAL);
 
   // Root Directory Number Of Files
   // ----------------------------------------------------------------
-  /*
   files = FAT32_Root_Dir_Files (&FAT32);
-  SSD1306_SetPosition (1, 5);
-  (files > 10) ? (sprintf (str, "[%d]", (int) files)) : (sprintf (str, "[ %d]", (int) files));
-  SSD1306_DrawString ("FILES", NORMAL);
-  SSD1306_SetPosition (103, 5);
+  SSD1306_SetPosition (1, 3);
+  sprintf (str, "[%02d]", (int) files);
+  SSD1306_DrawString ("NUMBER OF FILES ", NORMAL);
   SSD1306_DrawString (str, NORMAL);
-*/
+
   // VS1053 Init
   // ----------------------------------------------------------------
   VS1053_Init ();
-/*
-  // VS1053 Memory Test
+
+  // Play Song
   // ----------------------------------------------------------------
-  SSD1306_SetPosition (1, 3);
-  SSD1306_DrawString ("CODEC", NORMAL);
-  SSD1306_SetPosition (103, 3);
-  data = VS1053_TestMemory ();   
-  if (data != VS1053_MEMTEST_OK) {
-    SSD1306_DrawString ("[ER]", NORMAL);
-    return FAT32_ERROR;
-  }
-  VS1053_TestSine (VS10XX_FREQ_1kHz);                             // sine test 1kHz
-  //VS1053_TestSine (VS10XX_FREQ_5kHz);                             // sine test 5kHz
-  VS1053_TestSample (HelloMP3, sizeof(HelloMP3)-1);               // say Hello
-  SSD1306_DrawString ("[OK]", NORMAL);
-*/
-  // Read File
-  // ----------------------------------------------------------------
+  uint8_t song = 5;
   SSD1306_SetPosition (1, 5);
-  SSD1306_DrawString ("PLAY", NORMAL);
-  SSD1306_SetPosition (103, 5);
-  SSD1306_DrawString ("[ 3]", NORMAL);
-  VS1053_Play_Song_Test (&FAT32, 1);
+  SSD1306_DrawString ("PLAY SONG [", NORMAL);
+  file = FAT32_Get_File_Info (&FAT32, song);
+  SSD1306_DrawSongName ((char *) file->Name, NORMAL);
+  SSD1306_DrawString ("]", NORMAL);
+  VS1053_SetVolume (0x40, 0x40);
+  VS1053_Play_Song (&FAT32, song);
 
   // EXIT
   // ----------------------------------------------------------------

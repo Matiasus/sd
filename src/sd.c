@@ -50,7 +50,7 @@ uint8_t SD_Init (SD * sd)
   // SPI Init (settings, double speed)
   // ----------------------------------------------------------------
   SD_CS_Init ();
-  SPI_Init (SPI_MASTER | SPI_MODE_0 | SPI_MSB_FIRST | SPI_FOSC_DIV_128, 0);
+  SPI_Init (SPI_MASTER | SPI_MODE_0 | SPI_MSB_FIRST | SPI_FOSC_DIV_16, 0);
   SPI_Enable ();
 
   // Power Up 
