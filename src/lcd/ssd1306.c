@@ -553,19 +553,23 @@ uint8_t SSD1306_DrawString (char *str, enum E_Font font)
  * @desc    SSD1306 Draw String
  *
  * @param   char * string
- * @param   uint16_t
  * @param   E_Font
  *
  * @return  uint8_t
  */
-uint8_t SSD1306_DrawStringTo (char *str, uint16_t n, enum E_Font font)
+uint8_t SSD1306_DrawSongName (char * str, enum E_Font font)
 {
   uint8_t i = 0;                                                  // char counter
+  uint8_t n = 8;
 
   // send characters of string
   // -------------------------------------------------------------------------------------
   while (i < n) {
-    SSD1306_DrawChar (str[i++], font);                            // send char
+    if (str[i] == ' ') { 
+      i++;
+    } else {
+      SSD1306_DrawChar (str[i++], font);                          // send char
+    }
   }
 
   return SSD1306_SUCCESS;                                         // success
