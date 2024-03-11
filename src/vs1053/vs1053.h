@@ -40,9 +40,6 @@
   #define VS1053_SCK              SPI_SCK
   #define VS1053_MOSI             SPI_MOSI
   #define VS1053_MISO             SPI_MISO
-  //#define VS1053_XCS              SPI_SS
-  //#define VS1053_DREQ             1
-  //#define VS1053_XDCS             0
 
   // RESET
   #define VS1053_DDR_XRES         DDRB
@@ -61,6 +58,7 @@
 
   // DREQ
   #define VS1053_DDR_DREQ         DDRD
+  #define VS1053_PIN_DREQ         PIND
   #define VS1053_PORT_DREQ        PORTD
   #define VS1053_DREQ             2
 
@@ -128,7 +126,7 @@
   #define VS10XX_FREQ_1kHz        0x44
   #define VS10XX_FREQ_5kHz        0x54
   // Settings
-  #define VS10XX_CLOCKF_SET       0x8800
+  #define VS10XX_CLOCKF_SET       0x6000  // 0x8800 or 0x9000 for VS1053
   #define VS10XX_ADDR_ENDBYTE     0x1E06
   // Memory test ok
   #define VS1003_MEMTEST_OK       0x807f
@@ -245,16 +243,16 @@
    * |== CONTROL FUNCTIONS ==============================================================|
    * +-----------------------------------------------------------------------------------+
    */
-
+  
   /**
    * @brief   Init according to MPFLAGA
    * @src     https://github.com/mpflaga/Arduino_Library-vs1053_for_SdFat/blob/master/src/vs1053_SdFat.cpp
    * 
    * @param   void
    *
-   * @return  void
+   * @return  uint8_t
    */
-  void VS1053_Init_Mpflaga (void);
+  uint8_t VS1053_Init_Mpflaga (void);
 
   /**
    * @brief   Init
@@ -332,16 +330,6 @@
    * @return  void
    */
   void VS1053_Play_Song (FAT32_t *, uint16_t);
-
-  /**
-   * @brief   Testing
-   *
-   * @param   FAT32_t * - FAT32 structure
-   * @param   uint16_t - which file in order of root directory
-   *
-   * @return  void
-   */
-  void VS1053_Play_Song_Test (FAT32_t *, uint16_t);
 
   /**
    * @brief   Switch to MP3
