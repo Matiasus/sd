@@ -247,6 +247,16 @@
    */
 
   /**
+   * @brief   Init according to MPFLAGA
+   * @src     https://github.com/mpflaga/Arduino_Library-vs1053_for_SdFat/blob/master/src/vs1053_SdFat.cpp
+   * 
+   * @param   void
+   *
+   * @return  void
+   */
+  void VS1053_Init_Mpflaga (void);
+
+  /**
    * @brief   Init
    *
    * @param   void
