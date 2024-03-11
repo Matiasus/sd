@@ -504,6 +504,70 @@ void VS1053_Switch_To_MP3 (void)
  */
 
 /**
+ * @brief   Init according to MPFLAGA
+ * @src     https://github.com/mpflaga/Arduino_Library-vs1053_for_SdFat/blob/master/src/vs1053_SdFat.cpp
+ * 
+ * @param   void
+ *
+ * @return  void
+ */
+void VS1053_Init_Mpflaga (void)
+{
+  VS1053_DDR_DREQ &= ~(1 << VS1053_DREQ);               // DATA REQUEST as input
+  VS1053_PORT_DREQ |= (1 << VS1053_DREQ);               // DATA REQUEST pullup activate
+  
+  VS1053_DDR_XCS |= (1 << VS1053_XCS);                  // COMMAND SELECT as output  
+  VS1053_DDR_XDCS |= (1 << VS1053_XDCS);                // DATA SELECT as output
+  VS1053_DDR_XRES |= (1 << VS1053_XRES);                // RESET as output
+  
+  // RESET
+  // ----------------------------------------------------------------------------------
+  VS1053_DeactivateData ();                             // MP3_XCS
+  VS1053_DeactivateCommand ();                          // MP3_XDCS
+  
+  VS1053_ActivateReset ();                              // clear XRST
+  _delay_ms (100);
+  VS1053_DeactivateReset ();
+  _delay_ms (100);
+
+  // SPI Slow Speed
+  // ----------------------------------------------------------------------------------
+  SPI_Init (SPI_MASTER |                                // Slow Speed Init
+            SPI_MODE_0 | 
+            SPI_MSB_FIRST | 
+            SPI_FOSC_DIV_128, 0);                       // f = fclk/128 = 125 kHz
+  SPI_Enable ();                                        // enable SPI
+  _delay_ms (10);                                       // delay
+
+  if ((SM_LINE1 | SM_SDINEW) != VS1053_ReadSci (SCI_MODE)) {
+    return 4;
+  }
+
+  // SET Clock
+  // ----------------------------------------------------------------------------------
+  VS1053_WriteSci (SCI_CLOCKF, VS10XX_CLOCKF_SET);      // 0x8800
+  VS1053_DreqWait ();                                   // wait until DREQ is high
+
+  // SPI Fast Speed
+  // ----------------------------------------------------------------------------------
+  SPI_Init (SPI_MASTER |                                // Slow Speed Init
+            SPI_MODE_0 | 
+            SPI_MSB_FIRST | 
+            SPI_FOSC_DIV_16, 0);                        // f = fclk/16 = 1 MHz
+  SPI_Enable ();                                        // enable SPI
+  _delay_ms (10);                                       // delay
+
+  if (VS10XX_CLOCKF_SET != VS1053_ReadSci (SCI_CLOCKF)) {
+    return 5;
+  }
+
+  // SPI Set volume
+  // ----------------------------------------------------------------------------------
+  VS1053_SetVolume (0x65, 0x65);                        // switch on the analog parts
+  _delay_ms (100);
+}
+
+/**
  * @brief   Init
  *
  * @param   void
