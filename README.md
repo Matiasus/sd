@@ -27,76 +27,82 @@ Library was tested and proved with **Data Logger Arduino Shield** and **Arduino 
 
 ## Init Sequence
 ```c
-// +---------------------------------------------+
-// |                INIT SD CARD                 |
-// +---------------------------------------------+
-//                        |
-// +---------------------------------------------+
-// |                 SPI INIT                    |
-// |---------------------------------------------|
-// |           SPI_MASTER | SPI_MODE_0           |
-// |        SPI_MSB_FIRST | SPI_FOSC_DIV_16      |
-// +---------------------------------------------+
-//                        |
-// +---------------------------------------------+ 
-// |                  POWER UP                   |
-// |---------------------------------------------|
-// |          wait 250 ms powerUp time           |
-// |        deactivate CS - hold CS high         |
-// |       wait 1 ms - supply ramp up time       |
-// |     send 10 dummy bytes (min 74 cycles)     |
-// |        deactivate CS / hold CS high         | // accor. http://www.rjhcoding.com/avrc-sd-interface-1.php
-// |               send dummy byte               | // accor. http://www.rjhcoding.com/avrc-sd-interface-1.php
-// +---------------------------------------------+
-//                        |
-// +---------------------------------------------+ 
-// |            CMD0 / GO_IDLE_STATE             |
-// -----------------------------------------------
-// |      Is the software reset command and      |
-// |  sets each card into Idle State regardless  |
-// |          of the current card state          |
-// +---------------------------------------------+
-//                        |
-// +---------------------------------------------+ 
-// |            CMD8 / SEND_IF_COND              |
-// -----------------------------------------------
-// |  voltage information and asks the accessed  |
-// |  card whether card can operate in supplied  |
-// |               voltage range                 |
-// +---------------------------------------------+
-//                        |         
-//                        +-----------------------------------------------------------------------------+
-//                        |                                                                             |
-// +---------------------------------------------+                                +---------------------------------------------+
-// |           CARD RETURN RESPONSE              |                                |                NO RESPONSE                  |
-// -----------------------------------------------                                -----------------------------------------------
-// |      Accepted voltage range 2,7-3,6V        |                                | Ver2.00 or later SD Card (voltage mismatch) |
-// |      Ver2.00 or later SD Memory Card        |                                |              or Ver1.X SD Card              |
-// |                                             |                                |            or not SD Memory Card            |
-// +---------------------------------------------+                                +---------------------------------------------+
-//                        |                                                                             |
-// +---------------------------------------------+                                +---------------------------------------------+
-// | CMD41 / SD_SEND_OP_COND / with HCS = 0 or 1 |                                |   CMD41 / SD_SEND_OP_COND / with HCS = 0    |
-// -----------------------------------------------                                -----------------------------------------------
-// | Activates the card’s initialization process |                                | Activates the card’s initialization process |
-// +---------------------------------------------+                                +---------------------------------------------+
-//                        |                                                                             |
-//           +-------------------------+                   +-----------+                   +-------------------------+
-//           |     Card is ready ?     |------------------>|    NOT    |<------------------|     Card is ready ?     | 
-//           +-------------------------+                   +-----------+                   +-------------------------+
-//                        |                                      |                                      |
-//           +------------+------------+                         |                                      |
-//           |                         |                         |                                      |
-//    +------------+            +------------+                   |                                      |
-//    |   CCS = 0  |            |   CCS = 1  |                   |                                      |
-//    +------------+            +------------+                   |                                      |
-//           |                         |                         |                                      |
-//           |                         |                         |                                      |
-// +-------------------+     +-------------------+     +-------------------+                  +-------------------+
-// |     Ver2.00       |     |     Ver2.00       |     |     UNUSABLE      |                  |      Ver1.X       |
-// |  or later SDSC    |     |  or later SDHC    |     |     Mem Card      |                  |   SDSC Mem Card   |
-// |     Mem Card      |     |     or SHXC       |     |                   |                  |                   |
-// +-------------------+     +-------------------+     +-------------------+                  +-------------------+
+/*
++----------------------------------------+
+|                INIT SD CARD            |
++----------------------------------------+
+                    |
++----------------------------------------+
+|                SPI INIT                |
+|----------------------------------------|
+|        SPI_MASTER | SPI_MODE_0         |
+|     SPI_MSB_FIRST | SPI_FOSC_DIV_16    |
++----------------------------------------+
+                    |
++----------------------------------------+ 
+|               POWER UP                 |
+|----------------------------------------|
+|       wait 250 ms powerUp time         |
+|     deactivate CS - hold CS high       |
+|    wait 1 ms - supply ramp up time     |
+|  send 10 dummy bytes (min 74 cycles)   |
+|     deactivate CS / hold CS high       | accor. [rjhcoding]
+|            send dummy byte             | accor. [rjhcoding]
++----------------------------------------+
+                    |
++----------------------------------------+ 
+|         CMD0 / GO_IDLE_STATE           |
+------------------------------------------
+|   Is the software reset command and    |
+|     sets each card into Idle State     |
+|   regardlessof the current card state  |
++----------------------------------------+
+                    |
++----------------------------------------+ 
+|          CMD8 / SEND_IF_COND           |
+|----------------------------------------|
+|     voltage information and asks       | CMD8 also enables to expand new  
+|    the accessed card whether card      | functionality to some existing commands  
+|  can operate in suppliedvoltage range  | by redefining previously reserved bits
++----------------------------------------+
+                    |         
+                    +--------------------------------------------+
+                    |                                            |
++----------------------------------------+   +----------------------------------------+
+|           CARD RETURN RESPONSE         |   |              NO RESPONSE               |
+------------------------------------------   ------------------------------------------
+|      Accepted voltage range 2,7-3,6V   |   |       Ver2.00 or later SD Card         |
+|      Ver2.00 or later SD Memory Card   |   |  (voltage mismatch) or Ver1.X SD Card  |
+|                                        |   |         or not SD Memory Card          |
++----------------------------------------+   +----------------------------------------+
+                    |                                            |
++----------------------------------------+   +----------------------------------------+
+|        CMD41 / SD_SEND_OP_COND         |   |       CMD41 / SD_SEND_OP_COND /        |
+|            with HCS = 0 or 1           |   |             with HCS = 0               |
+------------------------------------------   ------------------------------------------
+|          Activates the card’s          |   |         Activates the card’s           |
+|         initialization process         |   |        initialization process          |
++----------------------------------------+   +----------------------------------------+
+                   |                                             |
+                   +-----------------------+---------------------+
+                                           |
+                                           v
+               +-------+         +-------------------+       +-------+
+               |  YES  |<--------|  Card is ready ?  |------>|  YES  |
+               +-------+         +-------------------+       +-------+
+                   |                       |                     |
+           +-------+-------+               |                     |
+           |               |               |                     |
+     +-----------+   +-----------+     +-------+                 |
+     |  CCS = 0  |   |  CCS = 1  |     |  NOT  |                 |
+     +-----------+   +-----------+     +-------+                 |
+           |               |               |                     |
+           v               v               v                     v
+     +-----------+   +-----------+   +-----------+         +-----------+
+     |  Ver2.00+ |   |  Ver2.00+ |   | UNUSABLE  |         |  Ver1.X   |
+     |   SDSC    |   | SDHC,SDXC |   | Mem Card  |         |   SDSC    |
+     +-----------+   +-----------+   +-----------+         +-----------+
+*/
 ```
 
 ## Demonstration
