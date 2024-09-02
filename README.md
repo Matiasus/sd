@@ -1,5 +1,5 @@
 # SD Card Interfacing
-Library was introduced as tool for interfacing AVR microcontrollers with memory card **sd**. These implementation has wide range of uses. For example I want to use it as place to store music files.
+Library was introduced as tool for interfacing AVR microcontrollers with memory card **sd**. These implementation has wide range of uses. By implementing the FAT32 file system, the options are much more extensive.
 
 ## Library
 C library is aimed for communicating with SD Card through 4-wire SPI interface.
