@@ -20,9 +20,8 @@
  */
 
 // INCLUDE libraries
-#include "src/fat32.h"
+#include "src/fat32/fat32.h"
 #include "src/vs1053/vs1053.h"
-//#include "src/vs1053/vs1053_hello.h"
 
 /**
  * @desc    Main function
