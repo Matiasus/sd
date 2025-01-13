@@ -1,6 +1,6 @@
 # SD Card Interfacing
 
-Library was introduced as tool for interfacing AVR microcontrollers with memory card **sd**. These implementation has wide range of uses. By implementing the FAT32 file system, the options are much more extensive.
+Library was introduced as tool for interfacing AVR microcontrollers with memory card **sd**. These implementation has wide range of uses. The possibilities are much wider with the FAT32 file system implementation. The example provided in the main file uses the FAT32 file system implementation.
 
 ## Library
 

@@ -1,24 +1,23 @@
 /**
- * -------------------------------------------------------------------------------------+
- * @brief       SSD1306 OLED Driver
- * -------------------------------------------------------------------------------------+
+ * --------------------------------------------------------------------------------------+
+ * @name        SSD1306 OLED Driver Library
+ * --------------------------------------------------------------------------------------+
  *              Copyright (C) 2020 Marian Hrinko.
  *              Written by Marian Hrinko (mato.hrinko@gmail.com)
  *
  * @author      Marian Hrinko
  * @date        06.10.2020
- * @update      21.11.2022
  * @file        ssd1306.h
  * @version     3.0
- * @tested      AVR Atmega328p
+ * @test        AVR Atmega328p
  *
  * @depend      font.h, twi.h
- * -------------------------------------------------------------------------------------+
- * @descr       Version 1.0 -> applicable for 1 display
+ * --------------------------------------------------------------------------------------+
+ * @version     Version 1.0 -> applicable for 1 display
  *              Version 2.0 -> rebuild to 'cacheMemLcd' array
  *              Version 3.0 -> simplified alphanumeric version
- * -------------------------------------------------------------------------------------+
- * @usage       Basic Setup for OLED Display
+ * --------------------------------------------------------------------------------------+
+ * @brief       Basic Setup for OLED Display
  */
 
 #ifndef __SSD1306_H__
@@ -82,6 +81,9 @@
   #define SSD1306_NOP               0xE3  // No operation
   #define SSD1306_RESET             0xE4  // Maybe SW RESET, @source https://github.com/SmingHub/Sming/issues/501
 
+  #define SSD1306_VERTICAL_MODE     0x01
+  #define SSD1306_HORIZONTAL_MODE   0x00
+
   // Clear Color
   // ------------------------------------------------------------------------------------
   #define CLEAR_COLOR               0x00
@@ -111,6 +113,16 @@
     UNDERLINE = 0x10
   };
 
+  // @enum
+  enum E_Line {
+    TOP = 0x01,
+    TOPDOUBLE = 0x03,
+    MIDDLE = 0x01,
+    MIDDLEDOUBLE = 0x18,
+    BOTTOM = 0x80,
+    BOTTOMDOUBLE = 0xC0
+  };
+
   /**
    * @brief   SSD1306 Send Start and SLAW request
    *
@@ -118,7 +130,7 @@
    *
    * @return  uint8_t
    */
-  uint8_t SSD1306_Send_StartAndSLAW (uint8_t);
+  uint8_t SSD1306_Send_StartAndSLAW(uint8_t);
 
   /**
    * @brief   SSD1306 Send command
@@ -127,7 +139,7 @@
    *
    * @return  uint8_t
    */
-  uint8_t SSD1306_Send_Command (uint8_t);
+  uint8_t SSD1306_Send_Command(uint8_t);
 
   /**
    * @brief   SSD1306 Init
@@ -136,7 +148,7 @@
    *
    * @return  uint8_t
    */
-  uint8_t SSD1306_Init (uint8_t);
+  uint8_t SSD1306_Init(uint8_t);
 
   /**
    * @brief   SSD1306 Clear screen
@@ -145,7 +157,18 @@
    *
    * @return  uint8_t
    */
-  uint8_t SSD1306_ClearScreen (void);
+  uint8_t SSD1306_ClearScreen(void);
+
+  /**
+   * @desc    SSD1306 Clear screen
+   *
+ * @param   uint8_t from page
+ * @param   uint8_t to page
+ * @param   uint8_t x margin
+   *
+   * @return  uint8_t
+   */
+  uint8_t SSD1306_ClearPages(uint8_t, uint8_t, uint8_t);
 
   /**
    * @brief   SSD1306 Normal colors
@@ -154,7 +177,7 @@
    *
    * @return  uint8_t
    */
-  uint8_t SSD1306_NormalScreen (void);
+  uint8_t SSD1306_NormalScreen(void);
 
   /**
    * @brief   SSD1306 Inverse colors
@@ -163,7 +186,7 @@
    *
    * @return  uint8_t
    */
-  uint8_t SSD1306_InverseScreen (void);
+  uint8_t SSD1306_InverseScreen(void);
 
   /**
    * @brief   SSD1306 Update text position
@@ -172,7 +195,7 @@
    *
    * @return  uint8_t
    */
-  uint8_t SSD1306_UpdatePosition (uint8_t, uint8_t);
+  uint8_t SSD1306_UpdatePosition(uint8_t, uint8_t);
 
   /**
    * @brief   SSD1306 Set position
@@ -182,7 +205,7 @@
    *
    * @return  uint8_t
    */
-  uint8_t SSD1306_SetPosition (uint8_t, uint8_t);
+  uint8_t SSD1306_SetPosition(uint8_t, uint8_t);
 
   /**
    * @brief   SSD1306 Set window
@@ -194,7 +217,7 @@
    *
    * @return  void
    */
-  uint8_t SSD1306_SetWindow (uint8_t, uint8_t, uint8_t, uint8_t);
+  uint8_t SSD1306_SetWindow(uint8_t, uint8_t, uint8_t, uint8_t);
 
   /**
    * @brief   SSD1306 Draw character
@@ -204,7 +227,7 @@
    *
    * @return  uint8_t
    */
-  uint8_t SSD1306_DrawChar (char, enum E_Font);
+  uint8_t SSD1306_DrawChar(char, enum E_Font);
 
   /**
    * @brief   SSD1306 Draw string
@@ -213,16 +236,49 @@
    *
    * @return  uint8_t
    */
-  uint8_t SSD1306_DrawString (char *, enum E_Font);
+  uint8_t SSD1306_DrawString(char *, enum E_Font);
 
   /**
-   * @desc    SSD1306 Draw String
+   * @brief   SSD1306 Draw line horizontal
    *
-   * @param   char * string
-   * @param   E_Font
+   * @param   uint8_t x
+   * @param   uint8_t y
+   * @param   uint8_t width
+   * @param   enum E_line {TOP, TOPDOUBLE, ... BOTTOM, BOTTOMDOUBLE} see enum E_Line
+   * 
+   * @return  uint8_t
+   */
+  uint8_t SSD1306_DrawLineHorizontal(uint8_t, uint8_t, uint8_t, enum E_Line);
+
+  /**
+   * @brief   SSD1306 Draw line vertical
+   *
+   * @param   uint8_t x {0 -> END_COLUMN_ADDRESS}
+   * @param   uint8_t y {0 -> END_PAGE_ADDR}
+   * @param   uint8_t height
+   * 
+   * @return  uint8_t
+   */
+  uint8_t SSD1306_DrawLineVertical(uint8_t, uint8_t, uint8_t);
+
+  /**
+   * @brief   SSD1306 Horizontal Scroll Start
+   *
+   * @param   uint8_t address
+   * @param   uint8_t start page
+   * @param   uint8_t end page
    *
    * @return  uint8_t
    */
-  uint8_t SSD1306_DrawSongName (char *, enum E_Font);
+  uint8_t SSD1306_HorizontalScroll(uint8_t, uint8_t, uint8_t);
+
+  /**
+   * @brief   SSD1306 Horizontal Scroll Stop
+   *
+   * @param   uint8_t
+   *
+   * @return  uint8_t
+   */
+  uint8_t SSD1306_HorizontalScrollStop(uint8_t);
 
 #endif

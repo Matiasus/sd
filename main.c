@@ -20,8 +20,7 @@
  */
 
 // INCLUDE libraries
-#include "src/fat32/fat32.h"
-#include "src/vs1053/vs1053.h"
+#include "src/fat32.h"
 
 /**
  * @desc    Main function
@@ -47,9 +46,10 @@ int main (void)
   // Init LCD SSD1306
   // ----------------------------------------------------------------
   SSD1306_Init (SSD1306_ADDR);
-  SSD1306_ClearScreen ();
-  SSD1306_SetPosition (7, 0);
-  SSD1306_DrawString ("MP3 SD-FAT32 PLAYER", NORMAL);
+  SSD1306_ClearScreen ();;
+  SSD1306_SetPosition (15, 0);
+  SSD1306_DrawString ("SD-FAT32 LIBRARY", NORMAL);
+  SSD1306_DrawLineHorizontal(0, 1, END_COLUMN_ADDR, MIDDLEDOUBLE);
 
   // Init SD
   // ----------------------------------------------------------------
@@ -62,25 +62,17 @@ int main (void)
   // Root Directory Number Of Files
   // ----------------------------------------------------------------
   files = FAT32_Root_Dir_Files (&FAT32);
-  SSD1306_SetPosition (1, 3);
   sprintf (str, "[%02d]", (int) files);
-  SSD1306_DrawString ("NUMBER OF FILES ", NORMAL);
+  SSD1306_SetPosition (1, 2);
+  SSD1306_DrawString ("Files ", NORMAL);
   SSD1306_DrawString (str, NORMAL);
 
-  // VS1053 Init
+  // Info of 5th file
   // ----------------------------------------------------------------
-  VS1053_Init ();
-
-  // Play Song
-  // ----------------------------------------------------------------
-  uint8_t song = 5;
-  SSD1306_SetPosition (1, 5);
-  SSD1306_DrawString ("PLAY SONG [", NORMAL);
-  file = FAT32_Get_File_Info (&FAT32, song);
-  SSD1306_DrawSongName ((char *) file->Name, NORMAL);
-  SSD1306_DrawString ("]", NORMAL);
-  VS1053_SetVolume (0x40, 0x40);
-  VS1053_Play_Song (&FAT32, song);
+  file = FAT32_Get_File_Info (&FAT32, 5);
+  SSD1306_SetPosition (1, 3);
+  SSD1306_DrawString ("5th file ", NORMAL);
+  SSD1306_DrawString ((char *) file->Name, NORMAL);
 
   // EXIT
   // ----------------------------------------------------------------
