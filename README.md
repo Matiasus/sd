@@ -8,7 +8,10 @@ C library is aimed for communicating with SD Card through 4-wire SPI interface.
 
 ### Versions
 
-1.0.0 - the first publication, init sequence and read block of data.
+1.0.0 - the first publication, init sequence and read block of data, main features:
+
+- it doesn't scan directories and subdirectories, read files placed only in root directory (/track1.mp3, /track2.mp3,...)
+- it doesn't read long file names, read only short names (8 characters of filename and 3 characters for extension)
 
 ## Dependencies
 
