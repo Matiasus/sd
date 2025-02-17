@@ -20,7 +20,7 @@
  */
 
 // INCLUDE libraries
-#include "src/fat32.h"
+#include "src/ui/ui.h"
 
 /**
  * @desc    Main function
@@ -31,48 +31,24 @@
  */
 int main (void)
 {
-  char str[10];
-  DE_t * file;
-  uint32_t files;
+  uint8_t r;
+  FAT32_t FAT32;                                          // declaration & init in fat32.c
 
-  FAT32_t FAT32 = {
-    .root_dir_clus_num = 0, 
-    .sectors_per_cluster = 0, 
-    .lba_begin = 0, 
-    .fat_area_begin = 0, 
-    .data_area_begin = 0, 
+  UI_Files_t UI_Files = {
+    .Position = 1, 
+    .Group = 4
   };
 
-  // Init LCD SSD1306
-  // ----------------------------------------------------------------
-  SSD1306_Init (SSD1306_ADDR);
-  SSD1306_ClearScreen ();;
-  SSD1306_SetPosition (15, 0);
-  SSD1306_DrawString ("SD-FAT32 LIBRARY", NORMAL);
-  SSD1306_DrawLineHorizontal(0, 1, END_COLUMN_ADDR, MIDDLEDOUBLE);
-
-  // Init SD
-  // ----------------------------------------------------------------
-  if (FAT32_Init(&FAT32) == FAT32_ERROR) {
-    SSD1306_SetPosition (40, 4);
-    SSD1306_DrawString ("[ERROR]", NORMAL);
-    return FAT32_ERROR;
+  // Init UI / SD Card, FAT32, LCD SSD1306
+  // --------------------------------------------------------------------------------------
+  if (UI_ERROR == (r = UI_Init(&FAT32))) {
+    UI_Print_Error(r);
+    return UI_ERROR;
   }
 
-  // Root Directory Number Of Files
-  // ----------------------------------------------------------------
-  files = FAT32_Root_Dir_Files (&FAT32);
-  sprintf (str, "[%02d]", (int) files);
-  SSD1306_SetPosition (1, 2);
-  SSD1306_DrawString ("Files ", NORMAL);
-  SSD1306_DrawString (str, NORMAL);
-
-  // Info of 5th file
-  // ----------------------------------------------------------------
-  file = FAT32_Get_File_Info (&FAT32, 5);
-  SSD1306_SetPosition (1, 3);
-  SSD1306_DrawString ("5th file ", NORMAL);
-  SSD1306_DrawString ((char *) file->Name, NORMAL);
+  UI_Clear_Screen();
+  UI_Print_Frame();
+  UI_Show_Song(&FAT32, 9, &UI_Files);
 
   // EXIT
   // ----------------------------------------------------------------

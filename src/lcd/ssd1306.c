@@ -117,7 +117,7 @@ uint8_t SSD1306_Send_Command(uint8_t command)
  *
  * @return  uint8_t
  */
-uint8_t SSD1306_Init (uint8_t address)
+uint8_t SSD1306_Init(uint8_t address)
 {
   const uint8_t * list = INIT_SSD1306;
   uint8_t status = INIT_STATUS;

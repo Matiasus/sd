@@ -23,14 +23,15 @@ Prior defined for MCU Atmega328p / Atmega8.
 
 | PORT | Arduino UNO R3 | Atmega8 / Atmega328 |      Device      |
 | :--: | :------------: | :-----------------: | :--------------: |
-|  SCK |       13       |         PB5         |  SD Card Clock   |
+| SCK  |       13       |         PB5         |  SD Card Clock   |
 | MISO |       12       |         PB4         | SD Card DATA OUT |
 | MOSI |       11       |         PB3         | SD Card DATA IN  |
-|   CS |        9       |         PB6         |  SD Card CS/SS   |
-|  SDA |       A4       |         PC4         |     OLED SDA     |
-|  SCL |       A5       |         PC5         |     OLED SCL     |
+|  CS  |       9        |         PB1         |  SD Card CS/SS   |
+| SDA  |       A4       |         PC4         |     OLED SDA     |
+| SCL  |       A5       |         PC5         |     OLED SCL     |
 
 ### Picture of hardware connection
+
 <img src="img/board.png" alt="Hardware connection" width="600">
 
 ### Tested
@@ -120,6 +121,8 @@ Library was tested and proved with **MP3 Arduino Shield** and **Arduino UNO R3**
 ```
 
 ## Demonstration
+
+<img src="img/sdexample.png" alt="Example demonstration" width="600">
 
 # Acknowledgement
 

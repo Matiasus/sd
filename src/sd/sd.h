@@ -27,8 +27,8 @@
   #include <stdio.h>
   #include <avr/io.h>
   #include <util/delay.h>
-  #include "spi.h"
-  #include "lcd/ssd1306.h"
+  #include "../spi/spi.h"
+  #include "../lcd/ssd1306.h"
 
   // RETURN
   // ------------------------------------------------------------------
