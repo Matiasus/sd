@@ -8,7 +8,7 @@ C library is aimed for communicating with SD Card through 4-wire SPI interface.
 
 ### Versions
 
-1.0.0 - the first publication, init sequence and read block of data, main features:
+1.0.0 - the first publication, init sequence and read block of data, but:
 
 - it doesn't scan directories and subdirectories, read files placed only in root directory (/track1.mp3, /track2.mp3,...)
 - it doesn't read long file names, read only short names (8 characters of filename and 3 characters for extension)
@@ -19,18 +19,23 @@ C library is aimed for communicating with SD Card through 4-wire SPI interface.
 
 Prior defined for MCU Atmega328p / Atmega8.
 
+### Hardware Connection
+
 | PORT | Arduino UNO R3 | Atmega8 / Atmega328 |      Device      |
 | :--: | :------------: | :-----------------: | :--------------: |
-| SCK  |       13       |         PB5         |  SD Card Clock   |
+|  SCK |       13       |         PB5         |  SD Card Clock   |
 | MISO |       12       |         PB4         | SD Card DATA OUT |
 | MOSI |       11       |         PB3         | SD Card DATA IN  |
-|  CS  |       10       |         PB2         |  SD Card CS/SS   |
-| SDA  |       A4       |         PC4         |     OLED SDA     |
-| SCL  |       A5       |         PC5         |     OLED SCL     |
+|   CS |        9       |         PB6         |  SD Card CS/SS   |
+|  SDA |       A4       |         PC4         |     OLED SDA     |
+|  SCL |       A5       |         PC5         |     OLED SCL     |
+
+### Picture of hardware connection
+<img src="img/board.png" alt="Hardware connection" width="600">
 
 ### Tested
 
-Library was tested and proved with **Data Logger Arduino Shield** and **Arduino UNO R3**. This hardware configuration was chosen for simplicity. Arduino does not have bootloader and was connected through SPI. Communication with SD Card was displayed on 0.96″ 128x64 OLED Display (SSD1306 driver).
+Library was tested and proved with **MP3 Arduino Shield** and **Arduino UNO R3**. This hardware configuration was chosen for simplicity. Arduino does not have bootloader and was connected through SPI. Communication with SD Card was displayed on 0.96″ 128x64 OLED Display (SSD1306 driver).
 
 ## Init Sequence
 
