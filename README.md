@@ -122,7 +122,7 @@ Library was tested and proved with **MP3 Arduino Shield** and **Arduino UNO R3**
 
 ## Demonstration
 
-<img src="img/sdexample.png" alt="Example demonstration" width="600">
+<img src="img/sdexample.jpg" alt="Example demonstration" width="600">
 
 # Acknowledgement
 
